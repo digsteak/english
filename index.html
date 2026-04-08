@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>領域對決</title>
+    <meta name="description" content="咒術迴戰主題卡牌對戰遊戲 - 召喚術師、編排隊伍、展開領域！">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+        /* 稀有度特效 */
+        .card-ssr { box-shadow: 0 0 15px #a855f7, inset 0 0 10px rgba(168,85,247,0.3); border: 2px solid #d8b4fe; }
+        .card-sr { box-shadow: 0 0 10px #eab308; border: 2px solid #fef08a; }
+        .card-r { box-shadow: 0 0 5px #3b82f6; border: 2px solid #93c5fd; }
+        .text-ssr { color: #d8b4fe; text-shadow: 0 0 8px #a855f7; }
+        .text-sr { color: #fde047; text-shadow: 0 0 5px #eab308; }
+        .text-r { color: #93c5fd; }
+
+        /* 動畫 */
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: pop 0.3s ease-out forwards; }
+
+        @keyframes flipIn {
+            0% { transform: rotateY(90deg) scale(0.8); opacity: 0; }
+            60% { transform: rotateY(-10deg) scale(1.05); opacity: 1; }
+            100% { transform: rotateY(0) scale(1); opacity: 1; }
+        }
+        .animate-flip { animation: flipIn 0.5s ease-out forwards; perspective: 600px; }
+
+        @keyframes shakeWin {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake { animation: shakeWin 0.4s ease-in-out; }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.3); }
+            50% { box-shadow: 0 0 25px rgba(168,85,247,0.7), 0 0 40px rgba(168,85,247,0.3); }
+        }
+        .animate-glow { animation: pulseGlow 2s ease-in-out infinite; }
+
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+
+        /* Toast 吐司通知 */
+        #toast-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        }
+        .toast {
+            background: rgba(15, 23, 42, 0.95); border: 1px solid #475569;
+            padding: 12px 24px; border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            animation: pop 0.2s ease-out forwards; backdrop-filter: blur(4px);
+        }
+
+        /* 10連抽結果網格 */
+        .multi-result-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+        }
+        @media (max-width: 640px) {
+            .multi-result-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* 勝利/敗北特效 */
+        .battle-win { border-color: #22c55e !important; box-shadow: 0 0 20px rgba(34,197,94,0.4); }
+        .battle-lose { border-color: #ef4444 !important; box-shadow: 0 0 20px rgba(239,68,68,0.4); }
+
+        /* 按鈕 disabled 改善 */
+        button:disabled { cursor: not-allowed; }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+
+    <!-- 系統通知區 -->
+    <div id="toast-container"></div>
+
+    <!-- 遊戲主畫面 -->
+    <div id="game-container" class="w-full max-w-4xl flex flex-col items-center animate-pop">
+        <!-- 頂部資訊欄 -->
+        <header
+            class="w-full flex justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-8">
+            <div>
+                <h1 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
+                    領域對決</h1>
+                <p class="text-xs text-slate-400 mt-1">本地版 v3.0</p>
+            </div>
+            <div class="flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
+                <span class="text-yellow-400 text-xl">💰</span>
+                <span id="coin-display" class="text-xl font-bold text-white tracking-wider">---</span>
+            </div>
+        </header>
+
+        <!-- 主選單 -->
+        <main class="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- 抽卡按鈕 -->
+            <button id="btn-open-gacha"
+                class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/50 p-6 transition-all hover:scale-105 shadow-lg hover:shadow-purple-500/20">
+                <div class="absolute inset-0 bg-gradient-to-t from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <span class="text-5xl mb-4 group-hover:animate-bounce transition-transform">🎫</span>
+                    <h2 class="text-2xl font-bold text-purple-200">咒力召喚</h2>
+                    <p class="text-slate-400 mt-2 text-sm">消耗金幣抽取角色</p>
+                </div>
+            </button>
+
+            <!-- 牌組按鈕 -->
+            <button id="btn-open-deck"
+                class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 to-cyan-900 border border-blue-500/50 p-6 transition-all hover:scale-105 shadow-lg hover:shadow-blue-500/20">
+                <div class="absolute inset-0 bg-gradient-to-t from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <span class="text-5xl mb-4 group-hover:animate-bounce transition-transform">🎴</span>
+                    <h2 class="text-2xl font-bold text-blue-200">術師編隊</h2>
+                    <p class="text-slate-400 mt-2 text-sm">編輯出戰陣容 (上限3人)</p>
+                </div>
+            </button>
+
+            <!-- 戰鬥按鈕 -->
+            <button id="btn-open-battle"
+                class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-900 to-orange-900 border border-red-500/50 p-6 transition-all hover:scale-105 shadow-lg hover:shadow-red-500/20">
+                <div class="absolute inset-0 bg-gradient-to-t from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <span class="text-5xl mb-4 group-hover:animate-bounce transition-transform">⚔️</span>
+                    <h2 class="text-2xl font-bold text-red-200">領域展開</h2>
+                    <p class="text-slate-400 mt-2 text-sm">挑戰咒靈賺取金幣</p>
+                </div>
+            </button>
+        </main>
+
+        <!-- 底部功能列 -->
+        <div class="mt-8 flex gap-4">
+            <button id="btn-reset" class="text-slate-500 hover:text-red-400 underline text-sm transition-colors">
+                重置存檔
+            </button>
+        </div>
+    </div>
+
+    <!-- 模態框容器 -->
+    <div id="modal-overlay"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+
+        <!-- 抽卡系統介面 -->
+        <div id="gacha-modal"
+            class="hidden w-full max-w-lg bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                <h3 class="text-xl font-bold text-purple-400">🎫 咒力召喚 (轉蛋)</h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 flex flex-col items-center text-center">
+                <div class="flex gap-4 text-sm mb-4">
+                    <span class="text-ssr">SSR 5%</span>
+                    <span class="text-slate-500">|</span>
+                    <span class="text-sr">SR 25%</span>
+                    <span class="text-slate-500">|</span>
+                    <span class="text-r">R 70%</span>
+                </div>
+                <div id="gacha-result"
+                    class="min-h-[12rem] w-full flex items-center justify-center mb-6 bg-slate-900 rounded-xl border border-slate-700 p-4">
+                    <span class="text-slate-500">點擊下方按鈕進行召喚...</span>
+                </div>
+                <div class="w-full flex gap-3">
+                    <button id="btn-draw-card"
+                        class="flex-1 py-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg transition-colors shadow-lg shadow-purple-500/30 active:scale-95">
+                        單抽 <span class="text-sm opacity-80">(100💰)</span>
+                    </button>
+                    <button id="btn-draw-ten"
+                        class="flex-1 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-lg transition-colors shadow-lg shadow-pink-500/30 animate-glow active:scale-95">
+                        10連抽 <span class="text-sm opacity-80">(900💰)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 牌組與背包介面 -->
+        <div id="deck-modal"
+            class="hidden w-full max-w-3xl bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                <h3 class="text-xl font-bold text-blue-400">🎴 術師編隊 (我的背包)</h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div class="mb-4 flex justify-between items-end flex-wrap gap-2">
+                    <h4 class="font-bold text-slate-300">目前出戰陣容 <span id="deck-count"
+                            class="text-sm font-normal text-slate-400">(0/3)</span></h4>
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm text-blue-400 font-bold">隊伍總戰力: <span id="deck-total-power" class="text-lg text-white">0</span></span>
+                        <span class="text-xs text-slate-500">點擊卡片可加入或移出隊伍</span>
+                    </div>
+                </div>
+                <div id="inventory-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+                <div id="empty-inventory-msg" class="text-center text-slate-500 py-10 hidden">
+                    背包空空如也，趕快去抽卡吧！
+                </div>
+            </div>
+        </div>
+
+        <!-- 戰鬥介面 -->
+        <div id="battle-modal"
+            class="hidden w-full max-w-lg bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                <h3 class="text-xl font-bold text-red-400">⚔️ 迎擊咒靈</h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 flex flex-col items-center">
+                <div id="battle-arena"
+                    class="w-full flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700 mb-6 transition-all duration-500">
+                    <div class="text-center w-1/3">
+                        <div class="text-sm text-slate-400 mb-1">您的戰力</div>
+                        <div id="player-power" class="text-2xl font-bold text-blue-400">0</div>
+                    </div>
+                    <div class="text-3xl font-black text-red-500 w-1/3 text-center">VS</div>
+                    <div class="text-center w-1/3">
+                        <div class="text-sm text-slate-400 mb-1">特級咒靈</div>
+                        <div id="enemy-power" class="text-2xl font-bold text-purple-400">???</div>
+                    </div>
+                </div>
+
+                <!-- 出戰隊伍預覽 -->
+                <div id="battle-deck-preview" class="w-full flex justify-center gap-2 mb-4"></div>
+
+                <div id="battle-log"
+                    class="w-full h-28 bg-black/50 rounded-lg p-3 text-sm text-slate-300 font-mono mb-6 overflow-y-auto flex flex-col gap-1 border border-slate-700">
+                </div>
+                <button id="btn-start-battle"
+                    class="w-full py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30 active:scale-95">
+                    展開領域 (開始戰鬥)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲核心邏輯 (純本地版) -->
+    <script>
+        // ==========================================
+        // 常數定義
+        // ==========================================
+        const GACHA_COST_SINGLE = 100;
+        const GACHA_COST_TEN = 900;
+        const STARTER_COINS = 1500;
+        const WIN_REWARD = 150;
+        const LOSE_REWARD = 30;
+        const MAX_DECK_SIZE = 3;
+        const SAVE_KEY = 'jujutsu_card_game_save';
+
+        const CARD_DB = [
+            { id: "c1", name: "五條悟", rarity: "SSR", power: 9999, class: "card-ssr text-ssr" },
+            { id: "c2", name: "兩面宿儺", rarity: "SSR", power: 9500, class: "card-ssr text-ssr" },
+            { id: "c3", name: "乙骨憂太", rarity: "SSR", power: 9000, class: "card-ssr text-ssr" },
+            { id: "c4", name: "虎杖悠仁", rarity: "SR", power: 5500, class: "card-sr text-sr" },
+            { id: "c5", name: "伏黑惠", rarity: "SR", power: 5200, class: "card-sr text-sr" },
+            { id: "c6", name: "釘崎野薔薇", rarity: "SR", power: 4800, class: "card-sr text-sr" },
+            { id: "c7", name: "七海建人", rarity: "SR", power: 6000, class: "card-sr text-sr" },
+            { id: "c8", name: "禪院真希", rarity: "R", power: 3000, class: "card-r text-r" },
+            { id: "c9", name: "狗卷棘", rarity: "R", power: 3200, class: "card-r text-r" },
+            { id: "c10", name: "熊貓", rarity: "R", power: 3500, class: "card-r text-r" }
+        ];
+
+        const CARD_DICT = CARD_DB.reduce((acc, card) => { acc[card.id] = card; return acc; }, {});
+
+        // ==========================================
+        // DOM 元素快取
+        // ==========================================
+        const DOM = {
+            toastContainer: document.getElementById('toast-container'),
+            coinDisplay: document.getElementById('coin-display'),
+            modalOverlay: document.getElementById('modal-overlay'),
+            gachaResult: document.getElementById('gacha-result'),
+            inventoryGrid: document.getElementById('inventory-grid'),
+            emptyInventoryMsg: document.getElementById('empty-inventory-msg'),
+            deckCount: document.getElementById('deck-count'),
+            deckTotalPower: document.getElementById('deck-total-power'),
+            playerPower: document.getElementById('player-power'),
+            enemyPower: document.getElementById('enemy-power'),
+            battleLog: document.getElementById('battle-log'),
+            battleArena: document.getElementById('battle-arena'),
+            battleDeckPreview: document.getElementById('battle-deck-preview'),
+            btnStartBattle: document.getElementById('btn-start-battle'),
+        };
+
+        const modals = {
+            gacha: document.getElementById('gacha-modal'),
+            deck: document.getElementById('deck-modal'),
+            battle: document.getElementById('battle-modal')
+        };
+
+        // ==========================================
+        // 遊戲資料管理 (localStorage)
+        // ==========================================
+        let gameData = null;
+
+        function loadGameData() {
+            try {
+                const saved = localStorage.getItem(SAVE_KEY);
+                if (saved) {
+                    gameData = JSON.parse(saved);
+                    // 資料完整性檢查
+                    if (typeof gameData.coins !== 'number') gameData.coins = STARTER_COINS;
+                    if (!Array.isArray(gameData.inventory)) gameData.inventory = [];
+                    if (!Array.isArray(gameData.deck)) gameData.deck = [];
+                    // 清理不存在的卡片 ID
+                    gameData.inventory = gameData.inventory.filter(id => CARD_DICT[id]);
+                    gameData.deck = gameData.deck.filter(id => CARD_DICT[id]);
+                } else {
+                    gameData = { coins: STARTER_COINS, inventory: [], deck: [] };
+                }
+            } catch {
+                gameData = { coins: STARTER_COINS, inventory: [], deck: [] };
+            }
+            saveGameData();
+        }
+
+        function saveGameData() {
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(gameData));
+            } catch (e) {
+                console.error("儲存失敗:", e);
+                showToast("本地存檔失敗！", "error");
+            }
+        }
+
+        // ==========================================
+        // UI 輔助函式
+        // ==========================================
+        function showToast(message, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            const icons = { info: "ℹ️", success: "✅", error: "❌", warning: "⚠️", ssr: "✨" };
+            const icon = icons[type] || icons.info;
+
+            const span = document.createElement('span');
+            span.className = 'font-bold';
+            span.textContent = `${icon} ${message}`;
+            toast.appendChild(span);
+
+            DOM.toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function openModal(modalName) {
+            Object.values(modals).forEach(m => m.classList.add('hidden'));
+            modals[modalName].classList.remove('hidden');
+            DOM.modalOverlay.classList.remove('hidden');
+            if (modalName === 'deck') renderInventory();
+            if (modalName === 'battle') prepareBattle();
+        }
+
+        function closeModal() {
+            DOM.modalOverlay.classList.add('hidden');
+            Object.values(modals).forEach(m => m.classList.add('hidden'));
+        }
+
+        function getCardSafe(id) {
+            return CARD_DICT[id] || { id: "unknown", name: "未知", rarity: "R", power: 0, class: "card-r text-r" };
+        }
+
+        // ==========================================
+        // 抽卡系統
+        // ==========================================
+        function rollCard() {
+            const roll = Math.random() * 100;
+            const rarityPool = roll <= 5 ? "SSR" : (roll <= 30 ? "SR" : "R");
+            const poolCards = CARD_DB.filter(c => c.rarity === rarityPool);
+            return poolCards[Math.floor(Math.random() * poolCards.length)];
+        }
+
+        function renderCardResult(card, delay = 0) {
+            const rarityClass = card.class.split(' ')[1];
+            const div = document.createElement('div');
+            div.className = `flex flex-col items-center animate-flip p-3 rounded-xl bg-slate-800 ${card.class}`;
+            div.style.animationDelay = `${delay}ms`;
+            div.style.opacity = '0';
+            div.innerHTML = `
+                <span class="text-xs font-bold mb-1 border border-current px-2 rounded">${card.rarity}</span>
+                <h4 class="text-lg font-black ${rarityClass}">${card.name}</h4>
+                <span class="text-xs text-slate-400 mt-1">⚡ ${card.power}</span>
+            `;
+            return div;
+        }
+
+        function drawCards(count) {
+            const cost = count === 1 ? GACHA_COST_SINGLE : GACHA_COST_TEN;
+            if (gameData.coins < cost) {
+                showToast("金幣不足！", "warning");
+                return;
+            }
+
+            gameData.coins -= cost;
+            const results = [];
+            let hasSSR = false;
+
+            for (let i = 0; i < count; i++) {
+                const card = rollCard();
+                results.push(card);
+                gameData.inventory.push(card.id);
+                if (card.rarity === "SSR") hasSSR = true;
+            }
+
+            saveGameData();
+            updateMainUI();
+
+            // 渲染結果
+            DOM.gachaResult.innerHTML = '';
+            if (count === 1) {
+                DOM.gachaResult.appendChild(renderCardResult(results[0]));
+                showToast(`抽到了 ${results[0].rarity} ${results[0].name}！`, results[0].rarity === "SSR" ? "ssr" : "success");
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'multi-result-grid w-full';
+                results.forEach((card, i) => {
+                    grid.appendChild(renderCardResult(card, i * 80));
+                });
+                DOM.gachaResult.appendChild(grid);
+
+                const ssrCount = results.filter(c => c.rarity === "SSR").length;
+                const srCount = results.filter(c => c.rarity === "SR").length;
+                if (hasSSR) {
+                    showToast(`10連抽完成！獲得 ${ssrCount} 張 SSR！！`, "ssr");
+                } else {
+                    showToast(`10連抽完成！獲得 ${srCount} 張 SR`, "success");
+                }
+            }
+        }
+
+        // ==========================================
+        // 牌組與背包
+        // ==========================================
+        function calculatePlayerPower() {
+            return gameData.deck.reduce((sum, id) => sum + (getCardSafe(id).power), 0);
+        }
+
+        function renderInventory() {
+            const grid = DOM.inventoryGrid;
+            grid.innerHTML = '';
+
+            if (!gameData.inventory.length) {
+                DOM.emptyInventoryMsg.classList.remove('hidden');
+                DOM.deckCount.textContent = '(0/3)';
+                DOM.deckTotalPower.textContent = '0';
+                return;
+            }
+
+            DOM.emptyInventoryMsg.classList.add('hidden');
+            DOM.deckCount.textContent = `(${gameData.deck.length}/${MAX_DECK_SIZE})`;
+            DOM.deckTotalPower.textContent = calculatePlayerPower().toLocaleString();
+
+            // 統計卡片數量
+            const cardCounts = {};
+            gameData.inventory.forEach(id => cardCounts[id] = (cardCounts[id] || 0) + 1);
+
+            // 按稀有度排序: SSR > SR > R
+            const rarityOrder = { SSR: 0, SR: 1, R: 2 };
+            const sortedIds = Object.keys(cardCounts).sort((a, b) => {
+                const ca = getCardSafe(a), cb = getCardSafe(b);
+                return (rarityOrder[ca.rarity] || 99) - (rarityOrder[cb.rarity] || 99) || cb.power - ca.power;
+            });
+
+            sortedIds.forEach((cardId, index) => {
+                const cardDef = getCardSafe(cardId);
+                const count = cardCounts[cardId];
+                const inDeckCount = gameData.deck.filter(id => id === cardId).length;
+                const rarityClass = cardDef.class.split(' ')[1];
+
+                const cardEl = document.createElement('div');
+                cardEl.className = `relative p-3 rounded-xl bg-slate-900 flex flex-col items-center cursor-pointer transition-all hover:bg-slate-800 hover:scale-105 animate-slide-up ${inDeckCount > 0 ? 'ring-2 ring-blue-500' : 'border border-slate-700'}`;
+                cardEl.style.animationDelay = `${index * 50}ms`;
+                cardEl.style.opacity = '0';
+
+                const countBadge = document.createElement('div');
+                countBadge.className = 'absolute top-2 right-2 text-xs bg-slate-700 px-1.5 rounded-full';
+                countBadge.textContent = `x${count}`;
+                cardEl.appendChild(countBadge);
+
+                if (inDeckCount > 0) {
+                    const deckBadge = document.createElement('div');
+                    deckBadge.className = 'absolute -top-2 -left-2 bg-blue-500 text-xs px-2 py-0.5 rounded-full font-bold shadow-lg shadow-blue-500/50';
+                    deckBadge.textContent = `已上陣 x${inDeckCount}`;
+                    cardEl.appendChild(deckBadge);
+                }
+
+                const raritySpan = document.createElement('span');
+                raritySpan.className = `text-xs font-bold mb-1 ${rarityClass}`;
+                raritySpan.textContent = cardDef.rarity;
+                cardEl.appendChild(raritySpan);
+
+                const nameH4 = document.createElement('h4');
+                nameH4.className = 'text-lg font-bold text-slate-200';
+                nameH4.textContent = cardDef.name;
+                cardEl.appendChild(nameH4);
+
+                const powerSpan = document.createElement('span');
+                powerSpan.className = 'text-xs text-slate-400 mt-1';
+                powerSpan.textContent = `⚡ 戰力 ${cardDef.power}`;
+                cardEl.appendChild(powerSpan);
+
+                cardEl.addEventListener('click', () => {
+                    if (inDeckCount < count && gameData.deck.length < MAX_DECK_SIZE) {
+                        gameData.deck.push(cardId);
+                    } else if (inDeckCount > 0) {
+                        gameData.deck.splice(gameData.deck.indexOf(cardId), 1);
+                    } else if (gameData.deck.length >= MAX_DECK_SIZE) {
+                        showToast(`隊伍已滿 (上限${MAX_DECK_SIZE}人)！`, "warning");
+                        return;
+                    }
+                    saveGameData();
+                    renderInventory();
+                });
+
+                grid.appendChild(cardEl);
+            });
+        }
+
+        // ==========================================
+        // 戰鬥系統
+        // ==========================================
+        function prepareBattle() {
+            const pPower = calculatePlayerPower();
+            DOM.playerPower.textContent = pPower.toLocaleString();
+            DOM.enemyPower.textContent = "???";
+            DOM.battleLog.innerHTML = '<div class="text-slate-500">點擊下方按鈕開始戰鬥！</div>';
+            DOM.btnStartBattle.disabled = false;
+            DOM.btnStartBattle.classList.remove('opacity-50');
+            DOM.btnStartBattle.textContent = '展開領域 (開始戰鬥)';
+            DOM.battleArena.classList.remove('battle-win', 'battle-lose');
+
+            // 顯示出戰隊伍
+            DOM.battleDeckPreview.innerHTML = '';
+            if (gameData.deck.length === 0) {
+                DOM.battleDeckPreview.innerHTML = '<span class="text-sm text-slate-500">尚未編排隊伍</span>';
+            } else {
+                gameData.deck.forEach(id => {
+                    const card = getCardSafe(id);
+                    const tag = document.createElement('span');
+                    tag.className = `text-xs px-2 py-1 rounded-lg ${card.class} font-bold`;
+                    tag.textContent = card.name;
+                    DOM.battleDeckPreview.appendChild(tag);
+                });
+            }
+        }
+
+        async function startBattle() {
+            const pPower = calculatePlayerPower();
+            if (pPower === 0) {
+                showToast("隊伍沒有任何人！請先裝備卡片。", "warning");
+                return;
+            }
+
+            DOM.btnStartBattle.disabled = true;
+            DOM.btnStartBattle.classList.add('opacity-50');
+            DOM.battleArena.classList.remove('battle-win', 'battle-lose');
+
+            const addLog = (text, cls = '') => {
+                const div = document.createElement('div');
+                if (cls) div.className = cls;
+                div.textContent = `> ${text}`;
+                DOM.battleLog.appendChild(div);
+                DOM.battleLog.scrollTop = DOM.battleLog.scrollHeight;
+            };
+
+            DOM.battleLog.innerHTML = '';
+            addLog('尋找咒靈中...');
+
+            await new Promise(r => setTimeout(r, 800));
+            const ePower = Math.floor(pPower * (0.7 + Math.random() * 0.6));
+            DOM.enemyPower.textContent = ePower.toLocaleString();
+            addLog(`遭遇特級咒靈！戰力：${ePower}`);
+
+            await new Promise(r => setTimeout(r, 600));
+            addLog('領域展開中...');
+
+            await new Promise(r => setTimeout(r, 800));
+
+            if (pPower >= ePower) {
+                addLog(`【勝利】獲得 ${WIN_REWARD} 金幣！`, 'text-green-400 font-bold');
+                gameData.coins += WIN_REWARD;
+                DOM.battleArena.classList.add('battle-win', 'animate-shake');
+                showToast("戰鬥勝利！🎉", "success");
+            } else {
+                addLog(`【敗北】獲得 ${LOSE_REWARD} 金幣...`, 'text-red-400 font-bold');
+                gameData.coins += LOSE_REWARD;
+                DOM.battleArena.classList.add('battle-lose');
+                showToast("戰鬥敗北...💀", "warning");
+            }
+
+            saveGameData();
+            updateMainUI();
+
+            setTimeout(() => {
+                DOM.btnStartBattle.disabled = false;
+                DOM.btnStartBattle.classList.remove('opacity-50');
+                DOM.btnStartBattle.textContent = '再次挑戰';
+                DOM.battleArena.classList.remove('animate-shake');
+            }, 1000);
+        }
+
+        // ==========================================
+        // 主界面更新
+        // ==========================================
+        function updateMainUI() {
+            if (!gameData) return;
+            DOM.coinDisplay.textContent = gameData.coins.toLocaleString();
+            // 同步更新背包（若開啟中）
+            if (!modals.deck.classList.contains('hidden')) renderInventory();
+        }
+
+        // ==========================================
+        // 事件綁定
+        // ==========================================
+        document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', closeModal));
+        DOM.modalOverlay.addEventListener('click', (e) => { if (e.target === DOM.modalOverlay) closeModal(); });
+
+        document.getElementById('btn-open-gacha').addEventListener('click', () => openModal('gacha'));
+        document.getElementById('btn-open-deck').addEventListener('click', () => openModal('deck'));
+        document.getElementById('btn-open-battle').addEventListener('click', () => openModal('battle'));
+
+        document.getElementById('btn-draw-card').addEventListener('click', () => drawCards(1));
+        document.getElementById('btn-draw-ten').addEventListener('click', () => drawCards(10));
+        document.getElementById('btn-start-battle').addEventListener('click', startBattle);
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if (confirm('確定要重置所有存檔嗎？此操作無法復原！')) {
+                localStorage.removeItem(SAVE_KEY);
+                gameData = { coins: STARTER_COINS, inventory: [], deck: [] };
+                saveGameData();
+                updateMainUI();
+                closeModal();
+                showToast("存檔已重置", "info");
+            }
+        });
+
+        // ESC 關閉模態框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // ==========================================
+        // 遊戲初始化
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadGameData();
+            updateMainUI();
+            showToast("歡迎來到領域對決！", "success");
+        });
+    </script>
+</body>
+
+</html>
