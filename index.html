@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>領域對決</title>
-    <meta name="description" content="咒術迴戰主題卡牌對戰遊戲 - 召喚術師、編排隊伍、展開領域！">
+    <title>領域對決 - 咒術師生涯版</title>
+    <meta name="description" content="正統 TCG 玩法，體驗事件卡、場地卡與防禦宣告的戰略深度！">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -18,95 +18,82 @@
             user-select: none;
         }
 
-        /* 自訂滾動條 */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
 
-        /* 稀有度特效 */
-        .card-ssr { box-shadow: 0 0 15px #a855f7, inset 0 0 10px rgba(168,85,247,0.3); border: 2px solid #d8b4fe; }
-        .card-sr { box-shadow: 0 0 10px #eab308; border: 2px solid #fef08a; }
-        .card-r { box-shadow: 0 0 5px #3b82f6; border: 2px solid #93c5fd; }
-        .text-ssr { color: #d8b4fe; text-shadow: 0 0 8px #a855f7; }
-        .text-sr { color: #fde047; text-shadow: 0 0 5px #eab308; }
-        .text-r { color: #93c5fd; }
-
-        /* 動畫 */
-        @keyframes pop {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+        /* 卡牌基礎樣式 */
+        .tcg-card {
+            width: 100px; height: 140px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid #334155; border-radius: 8px;
+            position: relative; display: flex; flex-direction: column; justify-content: space-between;
+            padding: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            transition: all 0.2s; cursor: pointer; flex-shrink: 0;
         }
+        .tcg-card:hover { transform: translateY(-5px); border-color: #60a5fa; box-shadow: 0 0 10px rgba(96, 165, 250, 0.5); }
+        
+        .tcg-card.rested { transform: rotate(90deg) scale(0.85); opacity: 0.7; filter: grayscale(40%); }
+        .tcg-card.rested:hover { transform: rotate(90deg) scale(0.9); border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+
+        .badge-ap { position: absolute; top: -6px; left: -6px; background: #ea580c; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;}
+        .badge-req { position: absolute; top: -6px; right: -6px; background: #0284c7; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; border: 2px solid #fff; z-index: 10;}
+        .badge-bp { position: absolute; bottom: 2px; left: 2px; background: #b91c1c; color: white; padding: 2px 4px; border-radius: 4px; font-weight: 900; font-size: 12px; border: 1px solid #fca5a5; }
+        .badge-gen { position: absolute; bottom: 2px; right: 2px; background: #ca8a04; color: white; padding: 2px 4px; border-radius: 4px; font-weight: 900; font-size: 12px; border: 1px solid #fde047; }
+        .badge-type { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #94a3b8; padding: 1px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; border: 1px solid #475569; white-space: nowrap;}
+
+        .card-name { text-align: center; font-size: 11px; font-weight: bold; margin-top: 12px; color: #e2e8f0; line-height: 1.1; background: rgba(0,0,0,0.6); border-radius: 4px; padding: 2px 0;}
+        .card-img-placeholder { flex-grow: 1; margin: 12px 0 10px 0; background: rgba(255,255,255,0.05); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 32px;}
+
+        .board-zone { display: flex; gap: 10px; justify-content: center; align-items: center; min-height: 150px; background: rgba(15, 23, 42, 0.6); border: 1px dashed #475569; border-radius: 12px; padding: 10px; width: 100%; max-width: 500px; }
+        .border-ssr { border-color: #d8b4fe !important; box-shadow: 0 0 5px rgba(168,85,247,0.5); }
+        .border-sr { border-color: #fef08a !important; }
+
+        @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-pop { animation: pop 0.3s ease-out forwards; }
+        
+        @keyframes flip-in { 0% { transform: rotateY(-90deg); opacity: 0; } 100% { transform: rotateY(0); opacity: 1; } }
+        .animate-flip { animation: flip-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-        @keyframes flipIn {
-            0% { transform: rotateY(90deg) scale(0.8); opacity: 0; }
-            60% { transform: rotateY(-10deg) scale(1.05); opacity: 1; }
-            100% { transform: rotateY(0) scale(1); opacity: 1; }
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid #475569; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); animation: pop 0.2s ease-out forwards; backdrop-filter: blur(4px); }
+        
+        /* 證件樣式 */
+        .id-card-bg {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 10px 10px;
         }
-        .animate-flip { animation: flipIn 0.5s ease-out forwards; perspective: 600px; }
-
-        @keyframes shakeWin {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-            20%, 40%, 60%, 80% { transform: translateX(4px); }
-        }
-        .animate-shake { animation: shakeWin 0.4s ease-in-out; }
-
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.3); }
-            50% { box-shadow: 0 0 25px rgba(168,85,247,0.7), 0 0 40px rgba(168,85,247,0.3); }
-        }
-        .animate-glow { animation: pulseGlow 2s ease-in-out infinite; }
-
-        @keyframes slideUp {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
-
-        /* Toast 吐司通知 */
-        #toast-container {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
-        }
-        .toast {
-            background: rgba(15, 23, 42, 0.95); border: 1px solid #475569;
-            padding: 12px 24px; border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            animation: pop 0.2s ease-out forwards; backdrop-filter: blur(4px);
-        }
-
-        /* 10連抽結果網格 */
-        .multi-result-grid {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
-        }
-        @media (max-width: 640px) {
-            .multi-result-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        /* 勝利/敗北特效 */
-        .battle-win { border-color: #22c55e !important; box-shadow: 0 0 20px rgba(34,197,94,0.4); }
-        .battle-lose { border-color: #ef4444 !important; box-shadow: 0 0 20px rgba(239,68,68,0.4); }
-
-        /* 按鈕 disabled 改善 */
-        button:disabled { cursor: not-allowed; }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+<body class="min-h-screen flex flex-col items-center p-2 md:p-4">
 
     <!-- 系統通知區 -->
     <div id="toast-container"></div>
 
-    <!-- 遊戲主畫面 -->
-    <div id="game-container" class="w-full max-w-4xl flex flex-col items-center animate-pop">
-        <!-- 頂部資訊欄 -->
-        <header
-            class="w-full flex justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-8">
-            <div>
-                <h1 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-                    領域對決</h1>
-                <p class="text-xs text-slate-400 mt-1">本地版 v3.0</p>
+    <!-- 登入畫面 -->
+    <div id="login-screen" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 flex flex-col items-center animate-pop mt-20">
+        <h1 class="text-4xl font-black mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">領域對決</h1>
+        <p class="text-slate-400 mb-8 text-sm">咒術師登錄系統</p>
+        <div class="w-full mb-6">
+            <label class="block text-slate-300 text-sm font-bold mb-2">請輸入您的名字 (作為玩家 ID)</label>
+            <input type="text" id="player-id-input" placeholder="例如: satoru99" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-600 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
+        </div>
+        <button id="btn-login" class="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-all shadow-lg shadow-blue-500/30">
+            登錄 / 開始遊戲
+        </button>
+    </div>
+
+    <!-- 遊戲主畫面 (大廳) -->
+    <div id="game-container" class="hidden w-full max-w-4xl flex flex-col items-center animate-pop">
+        <header class="w-full flex justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-8">
+            <div class="flex items-center gap-3 cursor-pointer group" onclick="showIDCard()">
+                <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-2xl border-2 border-blue-400 group-hover:border-blue-300 transition shadow-[0_0_10px_rgba(59,130,246,0.5)]">👤</div>
+                <div>
+                    <h1 id="display-player-id" class="text-xl font-black text-white group-hover:text-blue-300 transition">---</h1>
+                    <p id="display-player-grade" class="text-xs text-blue-400 mt-0.5 font-bold border border-blue-400/30 px-2 py-0.5 rounded inline-block bg-blue-900/30">四級咒術師</p>
+                </div>
             </div>
             <div class="flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
                 <span class="text-yellow-400 text-xl">💰</span>
@@ -114,560 +101,795 @@
             </div>
         </header>
 
-        <!-- 主選單 -->
         <main class="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- 抽卡按鈕 -->
-            <button id="btn-open-gacha"
-                class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/50 p-6 transition-all hover:scale-105 shadow-lg hover:shadow-purple-500/20">
-                <div class="absolute inset-0 bg-gradient-to-t from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <span class="text-5xl mb-4 group-hover:animate-bounce transition-transform">🎫</span>
-                    <h2 class="text-2xl font-bold text-purple-200">咒力召喚</h2>
-                    <p class="text-slate-400 mt-2 text-sm">消耗金幣抽取角色</p>
-                </div>
+            <button id="btn-open-gacha" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/50 p-6 transition-all hover:scale-105 shadow-lg">
+                <div class="relative z-10 flex flex-col items-center"><span class="text-5xl mb-4 group-hover:animate-bounce">🎫</span><h2 class="text-2xl font-bold text-purple-200">擴充包召喚</h2></div>
             </button>
-
-            <!-- 牌組按鈕 -->
-            <button id="btn-open-deck"
-                class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 to-cyan-900 border border-blue-500/50 p-6 transition-all hover:scale-105 shadow-lg hover:shadow-blue-500/20">
-                <div class="absolute inset-0 bg-gradient-to-t from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <span class="text-5xl mb-4 group-hover:animate-bounce transition-transform">🎴</span>
-                    <h2 class="text-2xl font-bold text-blue-200">術師編隊</h2>
-                    <p class="text-slate-400 mt-2 text-sm">編輯出戰陣容 (上限3人)</p>
-                </div>
+            <button id="btn-open-deck" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 to-cyan-900 border border-blue-500/50 p-6 transition-all hover:scale-105 shadow-lg">
+                <div class="relative z-10 flex flex-col items-center"><span class="text-5xl mb-4 group-hover:animate-bounce">🎴</span><h2 class="text-2xl font-bold text-blue-200">術師編隊</h2></div>
             </button>
-
-            <!-- 戰鬥按鈕 -->
-            <button id="btn-open-battle"
-                class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-900 to-orange-900 border border-red-500/50 p-6 transition-all hover:scale-105 shadow-lg hover:shadow-red-500/20">
-                <div class="absolute inset-0 bg-gradient-to-t from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <span class="text-5xl mb-4 group-hover:animate-bounce transition-transform">⚔️</span>
-                    <h2 class="text-2xl font-bold text-red-200">領域展開</h2>
-                    <p class="text-slate-400 mt-2 text-sm">挑戰咒靈賺取金幣</p>
-                </div>
+            <button id="btn-open-battle" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-900 to-orange-900 border border-red-500/50 p-6 transition-all hover:scale-105 shadow-lg">
+                <div class="relative z-10 flex flex-col items-center"><span class="text-5xl mb-4 group-hover:animate-bounce">⚔️</span><h2 class="text-2xl font-bold text-red-200">推進主線</h2></div>
             </button>
         </main>
-
-        <!-- 底部功能列 -->
+        
         <div class="mt-8 flex gap-4">
-            <button id="btn-reset" class="text-slate-500 hover:text-red-400 underline text-sm transition-colors">
-                重置存檔
-            </button>
+            <button id="btn-reset" class="text-slate-500 hover:text-red-400 underline text-sm transition-colors">清除本地進度</button>
         </div>
     </div>
 
-    <!-- 模態框容器 -->
-    <div id="modal-overlay"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+    <!-- 所有模態框容器 -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        
+        <!-- 咒術師證 (ID Card) Modal -->
+        <div id="id-card-modal" class="hidden w-full max-w-sm animate-flip">
+            <div class="id-card-bg rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.3)] overflow-hidden border-4 border-slate-300 relative">
+                <!-- 頂部紅色裝飾線 -->
+                <div class="w-full h-3 bg-red-700"></div>
+                <button class="absolute top-4 right-4 text-slate-500 hover:text-slate-800 text-2xl font-black btn-close-modal">&times;</button>
+                
+                <div class="p-6 flex flex-col items-center text-slate-800">
+                    <h2 class="text-lg font-black tracking-widest mb-1 border-b-2 border-slate-800 pb-1 w-full text-center">東京都立咒術高等專門學校</h2>
+                    <h3 class="text-sm font-bold text-slate-500 mb-6">咒術師登錄證</h3>
+                    
+                    <div class="flex w-full gap-4 items-center mb-6">
+                        <div class="w-24 h-32 bg-slate-300 border-2 border-slate-400 rounded flex items-center justify-center text-5xl shadow-inner">
+                            👤
+                        </div>
+                        <div class="flex-1 flex flex-col gap-3">
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-bold">氏名 NAME</p>
+                                <p id="card-name-val" class="text-xl font-black border-b border-slate-400">---</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-bold">階級 GRADE</p>
+                                <p id="card-grade-val" class="text-lg font-black text-blue-700 border-b border-slate-400">---</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full mt-2 pt-4 border-t border-slate-400 border-dashed flex justify-between items-end">
+                        <div class="font-mono text-xs text-slate-500 flex flex-col gap-1">
+                            <span class="bg-slate-800 text-white px-2 py-0.5 rounded">AUTHORIZED</span>
+                            <span id="card-date-val">ISSUE: 2026/04</span>
+                        </div>
+                        <div class="w-20 h-6 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-20"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <!-- 抽卡系統介面 -->
-        <div id="gacha-modal"
-            class="hidden w-full max-w-lg bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop">
+        <!-- 抽卡 Modal -->
+        <div id="gacha-modal" class="hidden w-full max-w-xl bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop flex flex-col max-h-[90vh]">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
-                <h3 class="text-xl font-bold text-purple-400">🎫 咒力召喚 (轉蛋)</h3>
+                <h3 class="text-xl font-bold text-purple-400">🎫 擴充包召喚</h3>
                 <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
-            <div class="p-6 flex flex-col items-center text-center">
-                <div class="flex gap-4 text-sm mb-4">
-                    <span class="text-ssr">SSR 5%</span>
-                    <span class="text-slate-500">|</span>
-                    <span class="text-sr">SR 25%</span>
-                    <span class="text-slate-500">|</span>
-                    <span class="text-r">R 70%</span>
+            
+            <div class="px-4 pt-4 overflow-x-auto scrollbar-hide">
+                <div id="banner-tabs" class="flex gap-2">
+                    <!-- 卡池分頁由 JS 生成 -->
                 </div>
-                <div id="gacha-result"
-                    class="min-h-[12rem] w-full flex items-center justify-center mb-6 bg-slate-900 rounded-xl border border-slate-700 p-4">
-                    <span class="text-slate-500">點擊下方按鈕進行召喚...</span>
+            </div>
+
+            <div class="p-6 flex flex-col items-center text-center overflow-y-auto flex-1">
+                <p id="banner-desc" class="text-indigo-300 text-sm mb-4 bg-indigo-900/30 px-4 py-2 rounded-lg border border-indigo-500/30 w-full"></p>
+                <div id="gacha-result" class="min-h-[12rem] w-full flex flex-wrap gap-2 items-center justify-center mb-6 bg-slate-900/50 rounded-xl border border-slate-700 p-4">
+                    <span class="text-slate-500">等待召喚...</span>
                 </div>
-                <div class="w-full flex gap-3">
-                    <button id="btn-draw-card"
-                        class="flex-1 py-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-lg transition-colors shadow-lg shadow-purple-500/30 active:scale-95">
-                        單抽 <span class="text-sm opacity-80">(100💰)</span>
-                    </button>
-                    <button id="btn-draw-ten"
-                        class="flex-1 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-lg transition-colors shadow-lg shadow-pink-500/30 animate-glow active:scale-95">
-                        10連抽 <span class="text-sm opacity-80">(900💰)</span>
-                    </button>
+                <div class="flex gap-3 w-full">
+                    <button id="btn-draw-1" class="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition shadow-lg shadow-purple-500/20 active:scale-95">單抽 (100 💰)</button>
+                    <button id="btn-draw-10" class="flex-1 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold transition shadow-lg shadow-fuchsia-500/20 active:scale-95">十連抽 (1000 💰)</button>
                 </div>
             </div>
         </div>
 
         <!-- 牌組與背包介面 -->
-        <div id="deck-modal"
-            class="hidden w-full max-w-3xl bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop flex flex-col max-h-[90vh]">
+        <div id="deck-modal" class="hidden w-full max-w-3xl bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop flex flex-col max-h-[90vh]">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
                 <h3 class="text-xl font-bold text-blue-400">🎴 術師編隊 (我的背包)</h3>
                 <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
-            <div class="p-6 overflow-y-auto flex-grow">
+            <div class="p-6 overflow-y-auto flex-grow scrollbar-hide">
                 <div class="mb-4 flex justify-between items-end flex-wrap gap-2">
-                    <h4 class="font-bold text-slate-300">目前出戰陣容 <span id="deck-count"
-                            class="text-sm font-normal text-slate-400">(0/3)</span></h4>
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm text-blue-400 font-bold">隊伍總戰力: <span id="deck-total-power" class="text-lg text-white">0</span></span>
-                        <span class="text-xs text-slate-500">點擊卡片可加入或移出隊伍</span>
-                    </div>
+                    <h4 class="font-bold text-slate-300">出戰陣容 <span id="deck-count-text" class="text-sm font-normal text-blue-400">(0/20)</span></h4>
+                    <span class="text-xs text-slate-500">點擊卡片檢視並編輯 (必須滿 20 張)</span>
                 </div>
-                <div id="inventory-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
-                <div id="empty-inventory-msg" class="text-center text-slate-500 py-10 hidden">
-                    背包空空如也，趕快去抽卡吧！
+                <div id="inventory-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- 關卡選擇 Modal -->
+        <div id="stage-modal" class="hidden w-full max-w-2xl bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                <h3 class="text-xl font-bold text-red-400">🗺️ 選擇挑戰關卡</h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="bg-slate-950 p-3 text-center text-sm text-slate-400 border-b border-slate-800">
+                通關最新關卡以提升「咒術師階級」並解鎖新卡池！
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow scrollbar-hide flex flex-col gap-4" id="stage-list"></div>
+        </div>
+
+        <!-- 卡牌檢視與行動 Modal -->
+        <div id="inspect-modal" class="hidden w-full max-w-sm bg-slate-800 rounded-2xl border border-slate-500 shadow-[0_0_30px_rgba(59,130,246,0.4)] overflow-hidden animate-pop flex flex-col z-[60]">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span id="inspect-icon" class="text-2xl"></span><span id="inspect-name"></span>
+                </h3>
+                <button class="text-slate-400 hover:text-white text-2xl leading-none" onclick="document.getElementById('inspect-modal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="p-5 flex flex-col gap-4">
+                <div class="grid grid-cols-4 gap-2 text-center text-xs font-bold">
+                    <div class="bg-slate-900 border border-slate-700 rounded p-2"><div class="text-slate-400 mb-1">消耗</div><div id="inspect-ap" class="text-orange-400 text-lg"></div></div>
+                    <div class="bg-slate-900 border border-slate-700 rounded p-2"><div class="text-slate-400 mb-1">需求</div><div id="inspect-req" class="text-blue-400 text-lg"></div></div>
+                    <div class="bg-slate-900 border border-slate-700 rounded p-2"><div class="text-slate-400 mb-1">BP</div><div id="inspect-bp" class="text-red-400 text-lg"></div></div>
+                    <div class="bg-slate-900 border border-slate-700 rounded p-2"><div class="text-slate-400 mb-1">產能</div><div id="inspect-gen" class="text-yellow-400 text-lg"></div></div>
+                </div>
+                <div class="flex gap-2 justify-center text-xs font-bold mb-2">
+                    <span id="inspect-type" class="px-2 py-1 bg-slate-700 rounded text-slate-300"></span>
+                    <span id="inspect-rarity" class="px-2 py-1 rounded"></span>
+                </div>
+                <div class="bg-black/40 border border-slate-700 p-3 rounded-lg min-h-[80px]">
+                    <p class="text-xs text-slate-500 mb-1">【卡牌效果】</p>
+                    <p id="inspect-desc" class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap"></p>
+                </div>
+                <div id="inspect-actions" class="flex flex-col gap-2 mt-2 w-full"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TCG 戰鬥盤面 -->
+    <div id="tcg-battle-screen" class="fixed inset-0 bg-slate-900 z-40 hidden flex flex-col">
+        <div class="bg-slate-950 p-2 border-b border-slate-800 flex justify-center items-center text-sm z-10 shadow-md relative">
+            <div class="text-lg font-black tracking-widest text-blue-400 transition-colors duration-300" id="battle-phase-text">玩家回合 - 主要階段</div>
+            <button id="btn-surrender" class="absolute right-4 px-4 py-2 bg-slate-800 hover:bg-red-900 hover:text-red-200 text-slate-300 rounded border border-slate-600 text-xs transition">投降</button>
+        </div>
+
+        <div id="battle-log" class="absolute top-16 left-1/2 transform -translate-x-1/2 bg-black/60 border border-slate-600 px-4 py-1 rounded-full text-slate-300 text-xs z-20 pointer-events-none transition-all">戰鬥開始！</div>
+
+        <div class="flex-grow overflow-y-auto flex flex-col p-4 gap-6 relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-opacity-10">
+            <div id="defend-overlay" class="absolute inset-0 bg-red-950/60 z-30 hidden flex-col items-center justify-center backdrop-blur-sm pointer-events-auto">
+                <div class="bg-slate-900 border-2 border-red-500 p-6 rounded-2xl text-center shadow-[0_0_40px_rgba(239,68,68,0.6)] animate-pop max-w-sm w-11/12 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <h3 class="text-red-400 font-black text-2xl mb-2">⚠️ 敵方發動攻擊！</h3>
+                    <p id="defend-attacker-info" class="text-white text-lg font-bold mb-4 bg-slate-800 py-2 rounded-lg border border-slate-700"></p>
+                    <p class="text-sm text-slate-400 mb-6">點擊我方<span class="text-blue-400 font-bold px-1">直立的前衛</span>進行阻擋，或：</p>
+                    <button id="btn-take-damage" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-xl w-full text-lg shadow-lg transition active:scale-95">不防禦 (承受傷害)</button>
+                </div>
+            </div>
+
+            <!-- AI 盤面 -->
+            <div class="w-full flex flex-col items-center gap-4 py-2 relative">
+                <div class="flex justify-center gap-4 w-full">
+                    <div class="bg-red-900/90 border border-red-400 text-white px-4 py-2 rounded-xl shadow-lg flex flex-col items-center min-w-[80px]"><div class="text-[10px] text-red-200 font-bold">AP 資源</div><div class="text-3xl font-black" id="ai-ap">3</div></div>
+                    <div class="bg-purple-900/90 border border-purple-400 text-white px-4 py-2 rounded-xl shadow-lg flex flex-col items-center min-w-[80px]"><div class="text-[10px] text-purple-200 font-bold">生命值</div><div class="text-3xl font-black" id="ai-life">7</div></div>
+                    <div class="bg-orange-900/90 border border-orange-400 text-white px-4 py-2 rounded-xl shadow-lg flex flex-col items-center min-w-[80px]"><div class="text-[10px] text-orange-200 font-bold">發生能量</div><div class="text-3xl font-black" id="ai-total-energy">0</div></div>
+                </div>
+                <div class="w-full flex flex-col items-center">
+                    <h3 class="text-orange-400 text-xs font-bold mb-2 bg-orange-900/30 px-3 py-1 rounded-full border border-orange-800/50">OPPONENT ENERGY LINE</h3>
+                    <div id="ai-energy-line" class="board-zone border-orange-800/50 bg-orange-950/20"></div>
+                </div>
+                <div class="w-full flex flex-col items-center">
+                    <h3 class="text-red-400 text-xs font-bold mb-2 bg-red-900/30 px-3 py-1 rounded-full border border-red-800/50">OPPONENT FRONT LINE</h3>
+                    <div id="ai-front-line" class="board-zone border-red-800/50 bg-red-950/20"></div>
+                </div>
+            </div>
+
+            <div class="w-full flex items-center justify-center relative my-2"><div class="w-full h-px bg-slate-700 absolute"></div><div class="bg-slate-900 text-slate-500 px-4 py-1 rounded-full text-xs font-bold border border-slate-700 relative z-10">VS</div></div>
+
+            <!-- 玩家盤面 -->
+            <div class="w-full flex flex-col items-center gap-4 py-2 relative z-0">
+                <div class="w-full flex flex-col items-center">
+                    <h3 class="text-blue-400 text-xs font-bold mb-2 bg-blue-900/30 px-3 py-1 rounded-full border border-blue-800/50">FRONT LINE (戰鬥區)</h3>
+                    <div id="player-front-line" class="board-zone border-blue-800/50 bg-blue-950/20"></div>
+                </div>
+                <div class="w-full flex flex-col items-center">
+                    <h3 class="text-yellow-400 text-xs font-bold mb-2 bg-yellow-900/30 px-3 py-1 rounded-full border border-yellow-800/50">ENERGY LINE (能量區)</h3>
+                    <div id="player-energy-line" class="board-zone border-yellow-800/50 bg-yellow-950/20"></div>
+                </div>
+                <div class="flex justify-center gap-4 w-full">
+                    <div class="bg-blue-900/90 border border-blue-400 text-white px-4 py-2 rounded-xl shadow-lg flex flex-col items-center min-w-[80px]"><div class="text-[10px] text-blue-200 font-bold">可用 AP</div><div class="text-3xl font-black" id="player-ap">3</div></div>
+                    <div class="bg-green-900/90 border border-green-400 text-white px-4 py-2 rounded-xl shadow-lg flex flex-col items-center min-w-[80px]"><div class="text-[10px] text-green-200 font-bold">生命值</div><div class="text-3xl font-black" id="player-life">7</div></div>
+                    <div class="bg-yellow-900/90 border border-yellow-400 text-white px-4 py-2 rounded-xl shadow-lg flex flex-col items-center min-w-[80px]"><div class="text-[10px] text-yellow-200 font-bold">發生能量</div><div class="text-3xl font-black" id="player-total-energy">0</div></div>
                 </div>
             </div>
         </div>
 
-        <!-- 戰鬥介面 -->
-        <div id="battle-modal"
-            class="hidden w-full max-w-lg bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-pop">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
-                <h3 class="text-xl font-bold text-red-400">⚔️ 迎擊咒靈</h3>
-                <button class="btn-close-modal text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
-            </div>
-            <div class="p-6 flex flex-col items-center">
-                <div id="battle-arena"
-                    class="w-full flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700 mb-6 transition-all duration-500">
-                    <div class="text-center w-1/3">
-                        <div class="text-sm text-slate-400 mb-1">您的戰力</div>
-                        <div id="player-power" class="text-2xl font-bold text-blue-400">0</div>
-                    </div>
-                    <div class="text-3xl font-black text-red-500 w-1/3 text-center">VS</div>
-                    <div class="text-center w-1/3">
-                        <div class="text-sm text-slate-400 mb-1">特級咒靈</div>
-                        <div id="enemy-power" class="text-2xl font-bold text-purple-400">???</div>
-                    </div>
+        <div class="bg-slate-800 border-t border-slate-700 p-3 flex flex-col gap-2 z-10 shadow-[0_-10px_15px_rgba(0,0,0,0.3)]">
+            <div class="flex justify-between items-center px-4">
+                <div class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">牌組: <span id="deck-count" class="text-white font-bold">0</span></div>
+                <div class="flex gap-3">
+                    <button id="btn-switch-attack" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-red-600/30 transform active:scale-95 transition">進入攻擊階段</button>
+                    <button id="btn-end-turn" class="bg-slate-600 hover:bg-slate-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg transform active:scale-95 transition hidden">結束回合</button>
                 </div>
-
-                <!-- 出戰隊伍預覽 -->
-                <div id="battle-deck-preview" class="w-full flex justify-center gap-2 mb-4"></div>
-
-                <div id="battle-log"
-                    class="w-full h-28 bg-black/50 rounded-lg p-3 text-sm text-slate-300 font-mono mb-6 overflow-y-auto flex flex-col gap-1 border border-slate-700">
-                </div>
-                <button id="btn-start-battle"
-                    class="w-full py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/30 active:scale-95">
-                    展開領域 (開始戰鬥)
-                </button>
             </div>
+            <div id="player-hand" class="flex gap-3 overflow-x-auto pb-2 pt-2 px-4 min-h-[150px] scrollbar-hide items-center"></div>
         </div>
     </div>
 
-    <!-- 遊戲核心邏輯 (純本地版) -->
+    <!-- 遊戲核心邏輯 -->
     <script>
         // ==========================================
-        // 常數定義
+        // 1. 卡牌資料庫
         // ==========================================
-        const GACHA_COST_SINGLE = 100;
-        const GACHA_COST_TEN = 900;
-        const STARTER_COINS = 1500;
-        const WIN_REWARD = 150;
-        const LOSE_REWARD = 30;
-        const MAX_DECK_SIZE = 3;
-        const SAVE_KEY = 'jujutsu_card_game_save';
-
         const CARD_DB = [
-            { id: "c1", name: "五條悟", rarity: "SSR", power: 9999, class: "card-ssr text-ssr" },
-            { id: "c2", name: "兩面宿儺", rarity: "SSR", power: 9500, class: "card-ssr text-ssr" },
-            { id: "c3", name: "乙骨憂太", rarity: "SSR", power: 9000, class: "card-ssr text-ssr" },
-            { id: "c4", name: "虎杖悠仁", rarity: "SR", power: 5500, class: "card-sr text-sr" },
-            { id: "c5", name: "伏黑惠", rarity: "SR", power: 5200, class: "card-sr text-sr" },
-            { id: "c6", name: "釘崎野薔薇", rarity: "SR", power: 4800, class: "card-sr text-sr" },
-            { id: "c7", name: "七海建人", rarity: "SR", power: 6000, class: "card-sr text-sr" },
-            { id: "c8", name: "禪院真希", rarity: "R", power: 3000, class: "card-r text-r" },
-            { id: "c9", name: "狗卷棘", rarity: "R", power: 3200, class: "card-r text-r" },
-            { id: "c10", name: "熊貓", rarity: "R", power: 3500, class: "card-r text-r" }
+            { id: "c1", name: "虎杖悠仁", type: "char", ap: 1, req: 0, gen: 1, bp: 2000, rarity: "R", icon: "👊", colorClass: "border-slate-500", ability: [{type: 'rush'}], desc: "【突擊】登場回合即可發動攻擊。" },
+            { id: "c2", name: "伏黑惠", type: "char", ap: 1, req: 1, gen: 1, bp: 2500, rarity: "R", icon: "🐺", colorClass: "border-slate-500", ability: [{type: 'draw', amount: 1}], desc: "【玉犬】登場時：抽取 1 張牌。" },
+            { id: "c3", name: "釘崎野薔薇", type: "char", ap: 1, req: 1, gen: 1, bp: 2500, rarity: "R", icon: "🔨", colorClass: "border-slate-500", ability: [{type: 'debuff_all', amount: 500}], desc: "【共鳴】登場時：敵方前衛全體 BP-500。" },
+            { id: "c4", name: "七海建人", type: "char", ap: 1, req: 2, gen: 1, bp: 3000, rarity: "SR", icon: "👔", colorClass: "border-sr", ability: [{type: 'rush'}], desc: "【十劃咒法】突擊。" },
+            { id: "c5", name: "狗卷棘", type: "char", ap: 1, req: 2, gen: 1, bp: 2500, rarity: "SR", icon: "🍙", colorClass: "border-sr", ability: [{type: 'debuff_all', amount: 1000}], desc: "【咒言】登場時：敵方前衛全體 BP-1000。" },
+            { id: "c6", name: "五條悟", type: "char", ap: 2, req: 4, gen: 1, bp: 4000, rarity: "SSR", icon: "🤞", colorClass: "border-ssr", ability: [{type: 'draw', amount: 2}, {type: 'gain_ap', amount: 1}], desc: "【無量空處】登場時：抽 2 張牌，並獲得 1 點 AP。" },
+            { id: "c7", name: "兩面宿儺", type: "char", ap: 2, req: 5, gen: 2, bp: 5000, rarity: "SSR", icon: "👹", colorClass: "border-ssr", ability: [{type: 'pierce'}, {type: 'direct_dmg', amount: 1}], desc: "【伏魔御廚子】貫穿。登場時：對敵方造成 1 點直接傷害。" },
+            { id: "c8", name: "乙骨憂太", type: "char", ap: 2, req: 4, gen: 1, bp: 4000, rarity: "SSR", icon: "💍", colorClass: "border-ssr", ability: [{type: 'heal', amount: 1}, {type: 'buff_all', amount: 1000}], desc: "【里香】登場時：恢復 1 點生命，我方前衛全體 BP+1000。" },
+            { id: "c9", name: "基礎術師", type: "char", ap: 1, req: 0, gen: 1, bp: 1000, rarity: "N", icon: "👤", colorClass: "border-slate-600", ability: [], desc: "普通的咒術高專學生。" },
+            { id: "c10", name: "輔助監督", type: "char", ap: 1, req: 0, gen: 1, bp: 1000, rarity: "N", icon: "📱", colorClass: "border-slate-600", ability: [{type: 'heal', amount: 1}], desc: "【後勤】登場時：恢復 1 點生命。" },
+            { id: "e1", name: "黑閃", type: "event", ap: 1, req: 2, gen: 0, bp: 0, rarity: "SR", icon: "💥", colorClass: "border-sr", ability: [{type: 'buff_all', amount: 1500}], desc: "【事件卡】打出後發動效果。\n效果：我方前衛全體 BP+1500。" },
+            { id: "e2", name: "反轉術式", type: "event", ap: 1, req: 3, gen: 0, bp: 0, rarity: "SR", icon: "✨", colorClass: "border-sr", ability: [{type: 'heal', amount: 2}], desc: "【事件卡】效果：恢復 2 點生命。" },
+            { id: "e3", name: "虛式「茈」", type: "event", ap: 2, req: 5, gen: 0, bp: 0, rarity: "SSR", icon: "🟣", colorClass: "border-ssr", ability: [{type: 'kill_random'}], desc: "【事件卡】效果：隨機破壞 1 名敵方前衛。" },
+            { id: "f1", name: "高專結界", type: "field", ap: 1, req: 1, gen: 2, bp: 0, rarity: "R", icon: "🏫", colorClass: "border-slate-500", ability: [], desc: "【場地卡】只能放置於能量區。\n無戰力，但能持續提供 2 點發生能量。" },
+            { id: "f2", name: "生得領域", type: "field", ap: 1, req: 2, gen: 3, bp: 0, rarity: "SR", icon: "🌌", colorClass: "border-sr", ability: [], desc: "【場地卡】只能放置於能量區。\n無戰力，但能持續提供 3 點發生能量。" }
         ];
 
-        const CARD_DICT = CARD_DB.reduce((acc, card) => { acc[card.id] = card; return acc; }, {});
+        const CARD_DICT = CARD_DB.reduce((acc, c) => { acc[c.id] = c; return acc; }, {});
+        const STARTER_DECK = ["c9","c9","c9","c9","c10","c10","c10","c10", "c1","c1","c2","c2","c3","c3", "f1","f1","e1", "c6","c7","e3"];
+        
+        // 階級與關卡系統
+        const GRADES = ['四級咒術師', '三級咒術師', '二級咒術師', '一級咒術師', '特級咒術師'];
+        const STAGE_DB = [
+            { id: 'stage1', name: '第一章：少年院', desc: '從這裡開始你的咒術師之路。', aiLife: 5, reward: 500, reqProgress: 0, buildDeck: () => CARD_DB.filter(c => c.rarity === 'N' || c.rarity === 'R').map(c=>c.id) },
+            { id: 'stage2', name: '第二章：京都姊妹校交流會', desc: '對抗京都校的猛攻與亂入的咒靈。', aiLife: 7, reward: 800, reqProgress: 1, buildDeck: () => CARD_DB.filter(c => c.rarity !== 'SSR').map(c=>c.id) },
+            { id: 'stage3', name: '第三章：澀谷事變', desc: '史無前例的災難，迎擊特級咒靈們！', aiLife: 10, reward: 1200, reqProgress: 2, buildDeck: () => CARD_DB.filter(c => c.req >= 2).map(c=>c.id) },
+            { id: 'stage4', name: '第四章：死滅迴游', desc: '賭上性命的死亡遊戲，迎擊古代術師！', aiLife: 15, reward: 2000, reqProgress: 3, buildDeck: () => CARD_DB.filter(c => c.req >= 2 || c.rarity === 'SSR').map(c=>c.id) }
+        ];
+        
+        const BANNERS = [
+            { id: 'all', name: '【常駐】基礎卡池', desc: '收錄基礎術師與咒靈', reqProgress: 0, filter: () => true },
+            { id: 'high_school', name: '【UP】咒術高專集結', desc: '五條悟與高專師生機率提升！', reqProgress: 1, filter: (c) => ['c6','c8','c4','c5','c9','c10','f1','e1'].includes(c.id) },
+            { id: 'shibuya', name: '【UP】澀谷與特級', desc: '特級咒靈與宿儺降臨！', reqProgress: 2, filter: (c) => ['c7','c6','c3','c4','c5','e3','f2'].includes(c.id) }
+        ];
 
-        // ==========================================
-        // DOM 元素快取
-        // ==========================================
+        let activePlayerId = null;
+        let gameData = null;
+        let selectedBannerId = 'all';
+        
         const DOM = {
             toastContainer: document.getElementById('toast-container'),
-            coinDisplay: document.getElementById('coin-display'),
             modalOverlay: document.getElementById('modal-overlay'),
-            gachaResult: document.getElementById('gacha-result'),
-            inventoryGrid: document.getElementById('inventory-grid'),
-            emptyInventoryMsg: document.getElementById('empty-inventory-msg'),
-            deckCount: document.getElementById('deck-count'),
-            deckTotalPower: document.getElementById('deck-total-power'),
-            playerPower: document.getElementById('player-power'),
-            enemyPower: document.getElementById('enemy-power'),
-            battleLog: document.getElementById('battle-log'),
-            battleArena: document.getElementById('battle-arena'),
-            battleDeckPreview: document.getElementById('battle-deck-preview'),
-            btnStartBattle: document.getElementById('btn-start-battle'),
+            battleLog: document.getElementById('battle-log')
         };
-
-        const modals = {
-            gacha: document.getElementById('gacha-modal'),
-            deck: document.getElementById('deck-modal'),
-            battle: document.getElementById('battle-modal')
+        const modals = { 
+            gacha: document.getElementById('gacha-modal'), deck: document.getElementById('deck-modal'), 
+            inspect: document.getElementById('inspect-modal'), stage: document.getElementById('stage-modal'),
+            idCard: document.getElementById('id-card-modal')
         };
 
         // ==========================================
-        // 遊戲資料管理 (localStorage)
-        // ==========================================
-        let gameData = null;
-
-        function loadGameData() {
-            try {
-                const saved = localStorage.getItem(SAVE_KEY);
-                if (saved) {
-                    gameData = JSON.parse(saved);
-                    // 資料完整性檢查
-                    if (typeof gameData.coins !== 'number') gameData.coins = STARTER_COINS;
-                    if (!Array.isArray(gameData.inventory)) gameData.inventory = [];
-                    if (!Array.isArray(gameData.deck)) gameData.deck = [];
-                    // 清理不存在的卡片 ID
-                    gameData.inventory = gameData.inventory.filter(id => CARD_DICT[id]);
-                    gameData.deck = gameData.deck.filter(id => CARD_DICT[id]);
-                } else {
-                    gameData = { coins: STARTER_COINS, inventory: [], deck: [] };
-                }
-            } catch {
-                gameData = { coins: STARTER_COINS, inventory: [], deck: [] };
-            }
-            saveGameData();
-        }
-
-        function saveGameData() {
-            try {
-                localStorage.setItem(SAVE_KEY, JSON.stringify(gameData));
-            } catch (e) {
-                console.error("儲存失敗:", e);
-                showToast("本地存檔失敗！", "error");
-            }
-        }
-
-        // ==========================================
-        // UI 輔助函式
+        // 輔助函式與系統
         // ==========================================
         function showToast(message, type = "info") {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            const icons = { info: "ℹ️", success: "✅", error: "❌", warning: "⚠️", ssr: "✨" };
-            const icon = icons[type] || icons.info;
-
-            const span = document.createElement('span');
-            span.className = 'font-bold';
-            span.textContent = `${icon} ${message}`;
-            toast.appendChild(span);
-
+            const toast = document.createElement('div'); toast.className = 'toast text-sm';
+            const icon = type === 'error' ? '❌' : (type === 'success' ? '✅' : (type === 'ssr' ? '✨' : 'ℹ️'));
+            toast.innerHTML = `<span class="font-bold">${icon} ${message}</span>`;
             DOM.toastContainer.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.3s ease';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
         }
+        function updateLog(msg) { DOM.battleLog.innerText = msg; }
 
-        function openModal(modalName) {
+        function openModal(name) {
             Object.values(modals).forEach(m => m.classList.add('hidden'));
-            modals[modalName].classList.remove('hidden');
+            modals[name].classList.remove('hidden');
             DOM.modalOverlay.classList.remove('hidden');
-            if (modalName === 'deck') renderInventory();
-            if (modalName === 'battle') prepareBattle();
+            if(name === 'deck') renderInventory();
+            if(name === 'stage') renderStageList();
+            if(name === 'gacha') renderGachaTabs();
         }
-
         function closeModal() {
             DOM.modalOverlay.classList.add('hidden');
             Object.values(modals).forEach(m => m.classList.add('hidden'));
         }
+        document.querySelectorAll('.btn-close-modal').forEach(b => b.addEventListener('click', closeModal));
 
-        function getCardSafe(id) {
-            return CARD_DICT[id] || { id: "unknown", name: "未知", rarity: "R", power: 0, class: "card-r text-r" };
+        // 登入系統
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const id = document.getElementById('player-id-input').value.trim();
+            if(!id) return;
+            activePlayerId = id;
+            
+            const saved = localStorage.getItem(`tcg_save_${id}`);
+            if (saved) {
+                gameData = JSON.parse(saved);
+                showToast(`歡迎回來，${id}！`);
+            } else {
+                gameData = { coins: 1500, inventory: [...STARTER_DECK], deck: [...STARTER_DECK], progress: 0, grade: GRADES[0] };
+                showToast(`建立新帳號：${id}`, "success");
+                setTimeout(() => showIDCard(), 500); // 新手發放證件
+            }
+            
+            // 補齊舊存檔缺少的欄位
+            if(gameData.progress === undefined) gameData.progress = 0;
+            if(!gameData.grade) gameData.grade = GRADES[0];
+            
+            saveGameData();
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if(confirm('確定清除進度？')) { localStorage.removeItem(`tcg_save_${activePlayerId}`); location.reload(); }
+        });
+
+        function saveGameData() { 
+            if(!activePlayerId) return;
+            localStorage.setItem(`tcg_save_${activePlayerId}`, JSON.stringify(gameData)); 
+            document.getElementById('coin-display').textContent = gameData.coins; 
+            document.getElementById('display-player-id').innerText = activePlayerId;
+            document.getElementById('display-player-grade').innerText = gameData.grade;
+        }
+
+        window.showIDCard = () => {
+            document.getElementById('card-name-val').innerText = activePlayerId;
+            document.getElementById('card-grade-val').innerText = gameData.grade;
+            
+            const today = new Date();
+            document.getElementById('card-date-val').innerText = `ISSUE: ${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}`;
+            
+            openModal('idCard');
+        }
+
+        // ==========================================
+        // 關卡與大廳
+        // ==========================================
+        document.getElementById('btn-open-battle').addEventListener('click', () => {
+            if(gameData.deck.length !== 20) return showToast("牌組必須剛好 20 張卡片！", "error");
+            openModal('stage');
+        });
+
+        function renderStageList() {
+            const list = document.getElementById('stage-list'); list.innerHTML = '';
+            STAGE_DB.forEach((stage, idx) => {
+                const isLocked = stage.reqProgress > gameData.progress;
+                const el = document.createElement('div');
+                el.className = `bg-slate-900 border border-slate-700 p-4 rounded-xl flex justify-between items-center ${isLocked ? 'opacity-50 grayscale' : 'hover:border-red-500 cursor-pointer group transition'}`;
+                el.innerHTML = `
+                    <div class="flex flex-col">
+                        <h4 class="text-lg font-bold text-white ${!isLocked && 'group-hover:text-red-400 transition'}">${stage.name}</h4>
+                        <p class="text-sm text-slate-400">${stage.desc}</p>
+                        <div class="flex gap-4 mt-2 text-xs font-bold">
+                            <span class="text-red-400">敵方生命: ${stage.aiLife}</span>
+                            <span class="text-yellow-400">獎勵: ${stage.reward} 💰</span>
+                        </div>
+                    </div>
+                    ${isLocked ? `<span class="text-slate-500 text-sm font-bold">🔒 需通關上一章</span>` : `<button class="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg transform active:scale-95 transition whitespace-nowrap">挑戰</button>`}
+                `;
+                if(!isLocked) el.onclick = () => startStage(stage.id);
+                list.appendChild(el);
+            });
         }
 
         // ==========================================
         // 抽卡系統
         // ==========================================
-        function rollCard() {
-            const roll = Math.random() * 100;
-            const rarityPool = roll <= 5 ? "SSR" : (roll <= 30 ? "SR" : "R");
-            const poolCards = CARD_DB.filter(c => c.rarity === rarityPool);
-            return poolCards[Math.floor(Math.random() * poolCards.length)];
+        document.getElementById('btn-open-gacha').addEventListener('click', () => { document.getElementById('gacha-result').innerHTML = '<span class="text-slate-500">等待召喚...</span>'; openModal('gacha'); });
+        
+        function renderGachaTabs() {
+            const container = document.getElementById('banner-tabs');
+            container.innerHTML = '';
+            BANNERS.forEach(b => {
+                const isLocked = b.reqProgress > gameData.progress;
+                const btn = document.createElement('button');
+                btn.className = `shrink-0 px-4 py-2 rounded-full font-bold transition-all whitespace-nowrap text-sm ${isLocked ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : (selectedBannerId === b.id ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.8)] border border-indigo-400' : 'bg-slate-800/80 text-slate-400 border border-slate-700 hover:bg-slate-700')}`;
+                btn.innerHTML = isLocked ? `🔒 未解鎖` : b.name;
+                if (!isLocked) {
+                    btn.onclick = () => { selectedBannerId = b.id; renderGachaTabs(); };
+                }
+                container.appendChild(btn);
+            });
+            document.getElementById('banner-desc').innerText = BANNERS.find(b=>b.id === selectedBannerId)?.desc || '';
         }
 
-        function renderCardResult(card, delay = 0) {
-            const rarityClass = card.class.split(' ')[1];
+        function performGacha(times) {
+            const cost = times * 100;
+            if (gameData.coins < cost) return showToast("金幣不足！", "error");
+            gameData.coins -= cost;
+            
+            const results = []; let hasSSR = false;
+            const activeBanner = BANNERS.find(b => b.id === selectedBannerId);
+
+            for(let i=0; i<times; i++) {
+                const r = Math.random() * 100;
+                const rarity = r < 5 ? "SSR" : (r < 25 ? "SR" : (r < 70 ? "R" : "N"));
+                let pool = CARD_DB.filter(c => c.rarity === rarity && activeBanner.filter(c));
+                if(pool.length === 0) pool = CARD_DB.filter(c => c.rarity === rarity);
+                const card = pool[Math.floor(Math.random() * pool.length)];
+                if(rarity === 'SSR') hasSSR = true;
+                results.push(card); gameData.inventory.push(card.id);
+            }
+            results.sort((a,b) => ({SSR:4,SR:3,R:2,N:1}[b.rarity] - {SSR:4,SR:3,R:2,N:1}[a.rarity]));
+            saveGameData();
+
+            const container = document.getElementById('gacha-result'); container.innerHTML = '';
+            results.forEach((c, idx) => {
+                const div = document.createElement('div');
+                div.className = `w-[80px] h-[112px] animate-pop transform origin-center`; div.style.animationDelay = `${idx*80}ms`;
+                div.innerHTML = `<div class="tcg-card ${c.colorClass} w-full h-full scale-[0.8] origin-top-left pointer-events-none" onclick="openCardModal('${c.id}', 'view')"><div class="badge-ap">${c.ap}</div><div class="badge-req">${c.req}</div><div class="card-img-placeholder text-2xl">${c.icon}</div><div class="card-name text-[9px]">${c.name}</div>${c.type === 'char' ? `<div class="badge-bp">${c.bp}</div>` : ''}<div class="badge-gen">+${c.gen}</div><div class="badge-type">${c.type.toUpperCase()}</div></div>`;
+                container.appendChild(div);
+            });
+            showToast(hasSSR ? "✨ 特級降臨！" : "召喚完成", hasSSR ? "ssr" : "success");
+        }
+        document.getElementById('btn-draw-1').addEventListener('click', () => performGacha(1));
+        document.getElementById('btn-draw-10').addEventListener('click', () => performGacha(10));
+
+        // ==========================================
+        // 統一卡牌檢視與行動 (Inspect Modal)
+        // ==========================================
+        window.openCardModal = (cardId, context, extraData = {}) => {
+            const c = CARD_DICT[cardId];
+            
+            document.getElementById('inspect-icon').innerText = c.icon;
+            document.getElementById('inspect-name').innerText = c.name;
+            document.getElementById('inspect-ap').innerText = c.ap;
+            document.getElementById('inspect-req').innerText = c.req;
+            document.getElementById('inspect-bp').innerText = c.type === 'char' ? c.bp : '-';
+            document.getElementById('inspect-gen').innerText = `+${c.gen}`;
+            document.getElementById('inspect-desc').innerText = c.desc;
+            
+            const typeEl = document.getElementById('inspect-type');
+            typeEl.innerText = c.type === 'char' ? '角色卡' : (c.type === 'event' ? '事件卡' : '場地卡');
+            typeEl.className = `px-2 py-1 rounded text-white text-xs ${c.type==='char'?'bg-blue-600':(c.type==='event'?'bg-purple-600':'bg-green-600')}`;
+            
+            const rarityEl = document.getElementById('inspect-rarity');
+            rarityEl.innerText = c.rarity;
+            rarityEl.className = `px-2 py-1 rounded text-xs font-bold bg-slate-900 border ${c.colorClass}`;
+
+            const btns = document.getElementById('inspect-actions');
+            btns.innerHTML = '';
+
+            if (context === 'deck') {
+                const total = extraData.total; const inDeck = extraData.inDeck;
+                btns.innerHTML = `<div class="flex gap-2"><button class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition" onclick="editDeck('${c.id}', 'remove')">移除 (-)</button><button class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition" onclick="editDeck('${c.id}', 'add')">加入牌組 (+)</button></div>`;
+            } else if (context === 'hand') {
+                const canPlay = gs.player.ap >= c.ap && calcGen(gs.player.energy) >= c.req;
+                if (!canPlay) {
+                    btns.innerHTML = `<div class="text-red-400 text-sm text-center py-2 font-bold bg-red-950/50 rounded-lg">AP 或 能量不足</div>`;
+                } else {
+                    if (c.type === 'char') {
+                        if(gs.player.front.length < 4) btns.innerHTML += `<button class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition shadow-lg" onclick="playCard(${extraData.handIdx}, 'front')">配置於 前衛區 (戰鬥)</button>`;
+                        if(gs.player.energy.length < 4) btns.innerHTML += `<button class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition shadow-lg mt-2" onclick="playCard(${extraData.handIdx}, 'energy')">配置於 能量區 (產能)</button>`;
+                    } else if (c.type === 'field') {
+                        if(gs.player.energy.length < 4) btns.innerHTML += `<button class="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition shadow-lg" onclick="playCard(${extraData.handIdx}, 'energy')">展開 場地卡</button>`;
+                        else btns.innerHTML += `<div class="text-red-400 text-sm text-center">能量區已滿</div>`;
+                    } else if (c.type === 'event') {
+                        btns.innerHTML += `<button class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition shadow-lg animate-pulse" onclick="playEventCard(${extraData.handIdx})">發動事件效果！</button>`;
+                    }
+                }
+            } else if (context === 'front_player_attack') {
+                if (!extraData.rested) btns.innerHTML = `<button class="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition shadow-lg shadow-red-500/50" onclick="executePlayerAttack(${extraData.frontIdx})">發動攻擊 (BP: ${c.bp}) ⚔️</button>`;
+                else btns.innerHTML = `<div class="text-slate-400 text-center py-2">卡片已橫置</div>`;
+            } else if (context === 'front_player_defend') {
+                if (!extraData.rested) btns.innerHTML = `<button class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition shadow-lg shadow-blue-500/50 animate-pulse" onclick="submitDefense(${extraData.frontIdx})">進行阻擋 🛡️</button>`;
+                else btns.innerHTML = `<div class="text-red-400 text-center py-2 font-bold">橫置無法阻擋！</div>`;
+            } else {
+                btns.innerHTML = `<button class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition" onclick="document.getElementById('inspect-modal').classList.add('hidden')">確認</button>`;
+            }
+
+            document.getElementById('inspect-modal').classList.remove('hidden');
+            if(context === 'hand' || context.includes('front')) DOM.modalOverlay.classList.remove('hidden');
+        };
+
+        window.editDeck = (id, action) => {
+            const inDeck = gameData.deck.filter(x => x === id).length;
+            const total = gameData.inventory.filter(x => x === id).length;
+            if (action === 'add' && inDeck < total && inDeck < 4 && gameData.deck.length < 20) {
+                gameData.deck.push(id); saveGameData(); renderInventory(); document.getElementById('inspect-modal').classList.add('hidden');
+            } else if (action === 'remove' && inDeck > 0) {
+                gameData.deck.splice(gameData.deck.indexOf(id), 1); saveGameData(); renderInventory(); document.getElementById('inspect-modal').classList.add('hidden');
+            } else { showToast("無法操作", "warning"); }
+        };
+
+        // ==========================================
+        // 牌組編輯 (Deck Builder)
+        // ==========================================
+        document.getElementById('btn-open-deck').addEventListener('click', () => openModal('deck'));
+        function renderInventory() {
+            const grid = document.getElementById('inventory-grid'); grid.innerHTML = '';
+            document.getElementById('deck-count-text').innerText = `(${gameData.deck.length}/20)`;
+            document.getElementById('deck-count-text').className = gameData.deck.length === 20 ? 'text-sm font-bold text-green-400' : 'text-sm font-normal text-red-400';
+
+            const counts = {}; gameData.inventory.forEach(id => counts[id] = (counts[id]||0)+1);
+            Object.keys(counts).forEach(id => {
+                const c = CARD_DICT[id]; const total = counts[id]; const inDeck = gameData.deck.filter(x => x === id).length;
+                const el = document.createElement('div');
+                el.className = `relative p-2 bg-slate-900 rounded-xl flex flex-col items-center cursor-pointer hover:bg-slate-700 transition ${inDeck > 0 ? 'ring-2 ring-blue-500' : 'border border-slate-700'}`;
+                el.innerHTML = `
+                    <div class="absolute top-1 right-1 text-[10px] bg-slate-700 px-1.5 rounded-full">x${total}</div>
+                    ${inDeck > 0 ? `<div class="absolute -top-2 -left-2 bg-blue-500 text-[10px] px-1.5 rounded shadow">上陣 x${inDeck}</div>` : ''}
+                    <div class="text-3xl mt-2 mb-1">${c.icon}</div>
+                    <div class="text-xs font-bold text-white text-center">${c.name}</div>
+                    ${c.type==='char' ? `<div class="text-[10px] text-red-400 font-bold mt-1">BP ${c.bp}</div>` : `<div class="text-[10px] text-purple-400 font-bold mt-1">${c.type.toUpperCase()}</div>`}
+                `;
+                el.onclick = () => openCardModal(id, 'deck', {total, inDeck});
+                grid.appendChild(el);
+            });
+        }
+
+        // ==========================================
+        // TCG 戰鬥引擎 (核心)
+        // ==========================================
+        let gs = null; let resolveDefensePromise = null; 
+
+        window.startStage = (stageId) => {
+            const stage = STAGE_DB.find(s => s.id === stageId);
+            let aDeckPool = stage.buildDeck();
+            while(aDeckPool.length < 20) aDeckPool = aDeckPool.concat(aDeckPool);
+            aDeckPool = aDeckPool.slice(0, 20).sort(() => Math.random() - 0.5);
+
+            gs = {
+                phase: 'main', turn: 1, currentStage: stage,
+                player: { life: 7, ap: 3, deck: [...gameData.deck].sort(() => Math.random() - 0.5), hand: [], front: [], energy: [] },
+                ai: { life: stage.aiLife, ap: 3, deck: aDeckPool, hand: [], front: [], energy: [] }
+            };
+
+            for(let i=0; i<5; i++) { drawCard(gs.player); drawCard(gs.ai); }
+
+            closeModal();
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('tcg-battle-screen').classList.remove('hidden');
+            updatePhaseUI('main'); renderBoard(); showToast(`${stage.name} 開始！`, "success"); updateLog("您的回合。點擊手牌查看或佈署。");
+        };
+
+        document.getElementById('btn-surrender').addEventListener('click', () => { document.getElementById('tcg-battle-screen').classList.add('hidden'); document.getElementById('game-container').classList.remove('hidden'); gs = null; });
+
+        function drawCard(target) { if(target.deck.length > 0) target.hand.push(target.deck.pop()); }
+        function calcGen(energyArray) { return energyArray.reduce((sum, c) => sum + CARD_DICT[c.id].gen, 0); }
+
+        function executeAbilities(cardDef, self, opponent, context) {
+            if(!cardDef.ability) return;
+            const abilities = Array.isArray(cardDef.ability) ? cardDef.ability : [cardDef.ability];
+            abilities.forEach(ab => {
+                if((ab.trigger || 'play') !== context) return;
+                switch (ab.type) {
+                    case 'draw': for(let i=0;i<ab.amount;i++) drawCard(self); updateLog(`觸發：抽 ${ab.amount} 張牌`); break;
+                    case 'heal': self.life = Math.min(10, self.life + ab.amount); updateLog(`觸發：恢復 ${ab.amount} 點生命`); break;
+                    case 'buff_all': self.front.forEach(c => c.tempBp = (c.tempBp||0) + ab.amount); updateLog(`觸發：前衛全體 BP+${ab.amount}`); break;
+                    case 'debuff_all': opponent.front.forEach(c => c.tempBp = (c.tempBp||0) - ab.amount); updateLog(`觸發：敵方前衛全體 BP-${ab.amount}`); break;
+                    case 'gain_ap': self.ap += ab.amount; updateLog(`觸發：獲得 ${ab.amount} AP`); break;
+                    case 'direct_dmg': opponent.life -= ab.amount; updateLog(`觸發：直接造成 ${ab.amount} 傷害！`); checkWin(); break;
+                    case 'kill_random': 
+                        if(opponent.front.length > 0) {
+                            opponent.front.splice(Math.floor(Math.random()*opponent.front.length), 1);
+                            updateLog(`觸發：粉碎了一名敵方前衛！`);
+                        } break;
+                }
+            });
+        }
+
+        // --- 渲染盤面 ---
+        function renderBoard() {
+            if(!gs) return;
+            const safeSetText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+
+            safeSetText('player-life', gs.player.life); safeSetText('player-ap', gs.player.ap); safeSetText('player-total-energy', calcGen(gs.player.energy)); safeSetText('deck-count', gs.player.deck.length);
+            safeSetText('ai-life', gs.ai.life); safeSetText('ai-ap', gs.ai.ap); safeSetText('ai-total-energy', calcGen(gs.ai.energy));
+
+            const renderZone = (elementId, cardArray, contextType) => {
+                const el = document.getElementById(elementId); if(!el) return;
+                el.innerHTML = '';
+                cardArray.forEach((cObj, idx) => {
+                    const div = createCardDOM(cObj.id, cObj.rested, cObj.tempBp);
+                    div.onclick = () => {
+                        let clickContext = contextType;
+                        if(contextType === 'front_player') clickContext = gs.phase === 'attack' ? 'front_player_attack' : (gs.phase === 'defend' ? 'front_player_defend' : 'view');
+                        openCardModal(cObj.id, clickContext, { frontIdx: idx, rested: cObj.rested });
+                    };
+                    if(gs.phase === 'defend' && contextType === 'front_player' && !cObj.rested) div.classList.add('ring-4', 'ring-blue-500', 'animate-pulse');
+                    el.appendChild(div);
+                });
+                for(let i=cardArray.length; i<4; i++) el.innerHTML += `<div class="w-[100px] h-[140px] border-2 border-dashed border-slate-600 rounded-xl bg-slate-800/30 flex-shrink-0 flex items-center justify-center text-slate-500 text-xs">空位</div>`;
+            };
+
+            renderZone('player-front-line', gs.player.front, 'front_player');
+            renderZone('player-energy-line', gs.player.energy, 'view');
+            renderZone('ai-front-line', gs.ai.front, 'view');
+            renderZone('ai-energy-line', gs.ai.energy, 'view');
+
+            const handEl = document.getElementById('player-hand');
+            if(handEl) {
+                handEl.innerHTML = '';
+                gs.player.hand.forEach((cardId, idx) => {
+                    const cDef = CARD_DICT[cardId];
+                    const div = createCardDOM(cardId, false);
+                    if(gs.phase !== 'main' || gs.player.ap < cDef.ap || calcGen(gs.player.energy) < cDef.req) div.classList.add('opacity-50', 'grayscale');
+                    div.onclick = () => openCardModal(cardId, 'hand', {handIdx: idx});
+                    handEl.appendChild(div);
+                });
+            }
+        }
+
+        function createCardDOM(cardId, isRested, tempBp = 0) {
+            const c = CARD_DICT[cardId];
             const div = document.createElement('div');
-            div.className = `flex flex-col items-center animate-flip p-3 rounded-xl bg-slate-800 ${card.class}`;
-            div.style.animationDelay = `${delay}ms`;
-            div.style.opacity = '0';
-            div.innerHTML = `
-                <span class="text-xs font-bold mb-1 border border-current px-2 rounded">${card.rarity}</span>
-                <h4 class="text-lg font-black ${rarityClass}">${card.name}</h4>
-                <span class="text-xs text-slate-400 mt-1">⚡ ${card.power}</span>
-            `;
+            div.className = `tcg-card ${c.colorClass} ${isRested ? 'rested' : ''}`;
+            const isRush = c.ability && c.ability.some(a=>a.type==='rush');
+            const currentBp = c.bp + (tempBp||0);
+            const bpColor = tempBp > 0 ? 'text-green-400' : (tempBp < 0 ? 'text-red-500' : 'text-white');
+            
+            let bpGenHtml = '';
+            if (c.type === 'char') bpGenHtml = `<div class="badge-bp ${bpColor}">${isRush?'<span class="text-yellow-400">⚡</span>':''}BP ${currentBp}</div><div class="badge-gen">+${c.gen}</div>`;
+            else if (c.type === 'field') bpGenHtml = `<div class="badge-gen">+${c.gen}</div>`;
+
+            div.innerHTML = `<div class="badge-ap">${c.ap}</div><div class="badge-req">${c.req}</div><div class="card-img-placeholder">${c.icon}</div><div class="card-name">${c.name}</div>${bpGenHtml}<div class="badge-type">${c.type.toUpperCase()}</div>`;
             return div;
         }
 
-        function drawCards(count) {
-            const cost = count === 1 ? GACHA_COST_SINGLE : GACHA_COST_TEN;
-            if (gameData.coins < cost) {
-                showToast("金幣不足！", "warning");
-                return;
+        // --- 玩家出牌與攻擊 ---
+        window.playCard = (handIdx, zone) => {
+            const cardId = gs.player.hand[handIdx]; const c = CARD_DICT[cardId];
+            gs.player.ap -= c.ap; gs.player.hand.splice(handIdx, 1);
+            
+            const isRush = c.ability && c.ability.some(a=>a.type==='rush');
+            gs.player[zone].push({ id: cardId, rested: (zone==='front' && isRush) ? false : true, tempBp: 0 });
+            
+            document.getElementById('inspect-modal').classList.add('hidden'); DOM.modalOverlay.classList.add('hidden');
+            updateLog(`佈署了 ${c.name}。`);
+            if(zone === 'front' || zone === 'energy') executeAbilities(c, gs.player, gs.ai, 'play');
+            renderBoard();
+        };
+
+        window.playEventCard = (handIdx) => {
+            const cardId = gs.player.hand[handIdx]; const c = CARD_DICT[cardId];
+            gs.player.ap -= c.ap; gs.player.hand.splice(handIdx, 1);
+            
+            document.getElementById('inspect-modal').classList.add('hidden'); DOM.modalOverlay.classList.add('hidden');
+            updateLog(`發動事件卡：${c.name}！`);
+            executeAbilities(c, gs.player, gs.ai, 'play');
+            renderBoard();
+        };
+
+        window.executePlayerAttack = (pFrontIdx) => {
+            document.getElementById('inspect-modal').classList.add('hidden'); DOM.modalOverlay.classList.add('hidden');
+            const pCardObj = gs.player.front[pFrontIdx]; const pCard = CARD_DICT[pCardObj.id]; pCardObj.rested = true; 
+            const finalBp = pCard.bp + (pCardObj.tempBp||0);
+
+            const activeDefenders = gs.ai.front.map((c, i) => ({c, i})).filter(x => !x.c.rested);
+            let chosenDefIdx = -1;
+            if (activeDefenders.length > 0) {
+                const winners = activeDefenders.filter(x => (CARD_DICT[x.c.id].bp + (x.c.tempBp||0)) >= finalBp);
+                if(winners.length > 0) chosenDefIdx = winners[0].i;
+                else if (gs.ai.life <= 2) chosenDefIdx = activeDefenders[0].i;
             }
 
-            gameData.coins -= cost;
-            const results = [];
-            let hasSSR = false;
-
-            for (let i = 0; i < count; i++) {
-                const card = rollCard();
-                results.push(card);
-                gameData.inventory.push(card.id);
-                if (card.rarity === "SSR") hasSSR = true;
-            }
-
-            saveGameData();
-            updateMainUI();
-
-            // 渲染結果
-            DOM.gachaResult.innerHTML = '';
-            if (count === 1) {
-                DOM.gachaResult.appendChild(renderCardResult(results[0]));
-                showToast(`抽到了 ${results[0].rarity} ${results[0].name}！`, results[0].rarity === "SSR" ? "ssr" : "success");
+            if (chosenDefIdx !== -1) {
+                const aCardObj = gs.ai.front[chosenDefIdx]; const aCard = CARD_DICT[aCardObj.id]; aCardObj.rested = true; 
+                const aFinalBp = aCard.bp + (aCardObj.tempBp||0);
+                
+                showToast(`被 ${aCard.name} 阻擋！`, "warning");
+                setTimeout(() => {
+                    if(finalBp > aFinalBp) { gs.ai.front.splice(chosenDefIdx, 1); updateLog(`擊破了 ${aCard.name}！`); }
+                    else if(finalBp < aFinalBp) { gs.player.front.splice(pFrontIdx, 1); updateLog(`攻擊被擋下，我方陣亡！`); }
+                    else { gs.ai.front.splice(chosenDefIdx, 1); gs.player.front.splice(pFrontIdx, 1); updateLog(`雙方同歸於盡！`); }
+                    renderBoard();
+                }, 800);
             } else {
-                const grid = document.createElement('div');
-                grid.className = 'multi-result-grid w-full';
-                results.forEach((card, i) => {
-                    grid.appendChild(renderCardResult(card, i * 80));
-                });
-                DOM.gachaResult.appendChild(grid);
-
-                const ssrCount = results.filter(c => c.rarity === "SSR").length;
-                const srCount = results.filter(c => c.rarity === "SR").length;
-                if (hasSSR) {
-                    showToast(`10連抽完成！獲得 ${ssrCount} 張 SSR！！`, "ssr");
-                } else {
-                    showToast(`10連抽完成！獲得 ${srCount} 張 SR`, "success");
-                }
+                gs.ai.life -= 1; showToast(`直接攻擊成功！`, "success"); checkWin();
             }
+            renderBoard();
+        };
+
+        window.submitDefense = (dIdx) => {
+            document.getElementById('inspect-modal').classList.add('hidden'); DOM.modalOverlay.classList.add('hidden');
+            if (resolveDefensePromise) resolveDefensePromise({ action: 'block', defenderIdx: dIdx });
+        };
+        document.getElementById('btn-take-damage').onclick = () => {
+            if (resolveDefensePromise) resolveDefensePromise({ action: 'take' });
+        };
+
+        // --- 階段與 AI ---
+        const btnSwitchAtt = document.getElementById('btn-switch-attack');
+        const btnEndTurn = document.getElementById('btn-end-turn');
+        const phaseText = document.getElementById('battle-phase-text');
+
+        function updatePhaseUI(phase) {
+            gs.phase = phase;
+            btnSwitchAtt.classList.add('hidden'); btnEndTurn.classList.add('hidden');
+            if(phase === 'main') { phaseText.innerText = `玩家回合 - 佈署階段`; phaseText.className = "text-lg font-black tracking-widest text-blue-400 transition-colors"; btnSwitchAtt.classList.remove('hidden'); } 
+            else if (phase === 'attack') { phaseText.innerText = `玩家回合 - 攻擊階段`; phaseText.className = "text-lg font-black tracking-widest text-red-400 transition-colors"; btnEndTurn.classList.remove('hidden'); updateLog("點擊前衛卡片發動攻擊。"); } 
+            else if (phase === 'enemy') { phaseText.innerText = `敵方回合中...`; phaseText.className = "text-lg font-black tracking-widest text-purple-400 transition-colors"; }
+            renderBoard();
         }
 
-        // ==========================================
-        // 牌組與背包
-        // ==========================================
-        function calculatePlayerPower() {
-            return gameData.deck.reduce((sum, id) => sum + (getCardSafe(id).power), 0);
-        }
+        btnSwitchAtt.addEventListener('click', () => updatePhaseUI('attack'));
+        btnEndTurn.addEventListener('click', () => { updatePhaseUI('enemy'); setTimeout(executeAITurn, 1000); });
 
-        function renderInventory() {
-            const grid = DOM.inventoryGrid;
-            grid.innerHTML = '';
+        async function executeAITurn() {
+            gs.ai.ap = 3;
+            gs.ai.front.forEach(c => {c.rested = false; c.tempBp = 0;}); gs.ai.energy.forEach(c => c.rested = false);
+            drawCard(gs.ai); updateLog("敵方回合開始。"); renderBoard(); await sleep(1000);
 
-            if (!gameData.inventory.length) {
-                DOM.emptyInventoryMsg.classList.remove('hidden');
-                DOM.deckCount.textContent = '(0/3)';
-                DOM.deckTotalPower.textContent = '0';
-                return;
-            }
-
-            DOM.emptyInventoryMsg.classList.add('hidden');
-            DOM.deckCount.textContent = `(${gameData.deck.length}/${MAX_DECK_SIZE})`;
-            DOM.deckTotalPower.textContent = calculatePlayerPower().toLocaleString();
-
-            // 統計卡片數量
-            const cardCounts = {};
-            gameData.inventory.forEach(id => cardCounts[id] = (cardCounts[id] || 0) + 1);
-
-            // 按稀有度排序: SSR > SR > R
-            const rarityOrder = { SSR: 0, SR: 1, R: 2 };
-            const sortedIds = Object.keys(cardCounts).sort((a, b) => {
-                const ca = getCardSafe(a), cb = getCardSafe(b);
-                return (rarityOrder[ca.rarity] || 99) - (rarityOrder[cb.rarity] || 99) || cb.power - ca.power;
-            });
-
-            sortedIds.forEach((cardId, index) => {
-                const cardDef = getCardSafe(cardId);
-                const count = cardCounts[cardId];
-                const inDeckCount = gameData.deck.filter(id => id === cardId).length;
-                const rarityClass = cardDef.class.split(' ')[1];
-
-                const cardEl = document.createElement('div');
-                cardEl.className = `relative p-3 rounded-xl bg-slate-900 flex flex-col items-center cursor-pointer transition-all hover:bg-slate-800 hover:scale-105 animate-slide-up ${inDeckCount > 0 ? 'ring-2 ring-blue-500' : 'border border-slate-700'}`;
-                cardEl.style.animationDelay = `${index * 50}ms`;
-                cardEl.style.opacity = '0';
-
-                const countBadge = document.createElement('div');
-                countBadge.className = 'absolute top-2 right-2 text-xs bg-slate-700 px-1.5 rounded-full';
-                countBadge.textContent = `x${count}`;
-                cardEl.appendChild(countBadge);
-
-                if (inDeckCount > 0) {
-                    const deckBadge = document.createElement('div');
-                    deckBadge.className = 'absolute -top-2 -left-2 bg-blue-500 text-xs px-2 py-0.5 rounded-full font-bold shadow-lg shadow-blue-500/50';
-                    deckBadge.textContent = `已上陣 x${inDeckCount}`;
-                    cardEl.appendChild(deckBadge);
-                }
-
-                const raritySpan = document.createElement('span');
-                raritySpan.className = `text-xs font-bold mb-1 ${rarityClass}`;
-                raritySpan.textContent = cardDef.rarity;
-                cardEl.appendChild(raritySpan);
-
-                const nameH4 = document.createElement('h4');
-                nameH4.className = 'text-lg font-bold text-slate-200';
-                nameH4.textContent = cardDef.name;
-                cardEl.appendChild(nameH4);
-
-                const powerSpan = document.createElement('span');
-                powerSpan.className = 'text-xs text-slate-400 mt-1';
-                powerSpan.textContent = `⚡ 戰力 ${cardDef.power}`;
-                cardEl.appendChild(powerSpan);
-
-                cardEl.addEventListener('click', () => {
-                    if (inDeckCount < count && gameData.deck.length < MAX_DECK_SIZE) {
-                        gameData.deck.push(cardId);
-                    } else if (inDeckCount > 0) {
-                        gameData.deck.splice(gameData.deck.indexOf(cardId), 1);
-                    } else if (gameData.deck.length >= MAX_DECK_SIZE) {
-                        showToast(`隊伍已滿 (上限${MAX_DECK_SIZE}人)！`, "warning");
-                        return;
+            let aiEnergy = calcGen(gs.ai.energy);
+            for (let i = gs.ai.hand.length - 1; i >= 0; i--) {
+                const cId = gs.ai.hand[i]; const cDef = CARD_DICT[cId];
+                if (gs.ai.ap >= cDef.ap && aiEnergy >= cDef.req) {
+                    if (cDef.type === 'event') {
+                        gs.ai.ap -= cDef.ap; gs.ai.hand.splice(i, 1); updateLog(`敵方發動了事件：${cDef.name}`); executeAbilities(cDef, gs.ai, gs.player, 'play');
+                    } else if (cDef.type === 'field' && gs.ai.energy.length < 4) {
+                        gs.ai.energy.push({ id: cId, rested: true }); gs.ai.ap -= cDef.ap; gs.ai.hand.splice(i, 1); aiEnergy = calcGen(gs.ai.energy); updateLog(`敵方展開場地：${cDef.name}`);
+                    } else if (cDef.type === 'char') {
+                        const isRush = cDef.ability && cDef.ability.some(a=>a.type==='rush');
+                        if (gs.ai.energy.length < 4 && cDef.req <= 1) {
+                            gs.ai.energy.push({ id: cId, rested: true, tempBp: 0 }); gs.ai.ap -= cDef.ap; gs.ai.hand.splice(i, 1); aiEnergy = calcGen(gs.ai.energy);
+                        } else if (gs.ai.front.length < 4) {
+                            gs.ai.front.push({ id: cId, rested: !isRush, tempBp: 0 }); gs.ai.ap -= cDef.ap; gs.ai.hand.splice(i, 1); executeAbilities(cDef, gs.ai, gs.player, 'play');
+                        }
                     }
-                    saveGameData();
-                    renderInventory();
-                });
-
-                grid.appendChild(cardEl);
-            });
-        }
-
-        // ==========================================
-        // 戰鬥系統
-        // ==========================================
-        function prepareBattle() {
-            const pPower = calculatePlayerPower();
-            DOM.playerPower.textContent = pPower.toLocaleString();
-            DOM.enemyPower.textContent = "???";
-            DOM.battleLog.innerHTML = '<div class="text-slate-500">點擊下方按鈕開始戰鬥！</div>';
-            DOM.btnStartBattle.disabled = false;
-            DOM.btnStartBattle.classList.remove('opacity-50');
-            DOM.btnStartBattle.textContent = '展開領域 (開始戰鬥)';
-            DOM.battleArena.classList.remove('battle-win', 'battle-lose');
-
-            // 顯示出戰隊伍
-            DOM.battleDeckPreview.innerHTML = '';
-            if (gameData.deck.length === 0) {
-                DOM.battleDeckPreview.innerHTML = '<span class="text-sm text-slate-500">尚未編排隊伍</span>';
-            } else {
-                gameData.deck.forEach(id => {
-                    const card = getCardSafe(id);
-                    const tag = document.createElement('span');
-                    tag.className = `text-xs px-2 py-1 rounded-lg ${card.class} font-bold`;
-                    tag.textContent = card.name;
-                    DOM.battleDeckPreview.appendChild(tag);
-                });
-            }
-        }
-
-        async function startBattle() {
-            const pPower = calculatePlayerPower();
-            if (pPower === 0) {
-                showToast("隊伍沒有任何人！請先裝備卡片。", "warning");
-                return;
+                    renderBoard(); await sleep(800);
+                }
             }
 
-            DOM.btnStartBattle.disabled = true;
-            DOM.btnStartBattle.classList.add('opacity-50');
-            DOM.battleArena.classList.remove('battle-win', 'battle-lose');
+            updateLog("敵方進入攻擊階段！"); await sleep(800);
+            for (let i = 0; i < gs.ai.front.length; i++) {
+                const attackerObj = gs.ai.front[i];
+                if (attackerObj && !attackerObj.rested) {
+                    const aCard = CARD_DICT[attackerObj.id]; attackerObj.rested = true; 
+                    const aFinalBp = aCard.bp + (attackerObj.tempBp||0);
+                    
+                    gs.phase = 'defend'; renderBoard(); 
+                    DOM.defendOverlay.classList.remove('hidden');
+                    document.getElementById('defend-attacker-info').innerHTML = `${aCard.icon} ${aCard.name} <span class="text-red-400 ml-2">BP ${aFinalBp}</span>`;
+                    updateLog(`敵方 ${aCard.name} 發動攻擊！`);
 
-            const addLog = (text, cls = '') => {
-                const div = document.createElement('div');
-                if (cls) div.className = cls;
-                div.textContent = `> ${text}`;
-                DOM.battleLog.appendChild(div);
-                DOM.battleLog.scrollTop = DOM.battleLog.scrollHeight;
-            };
+                    const decision = await new Promise(res => { resolveDefensePromise = res; });
+                    DOM.defendOverlay.classList.add('hidden'); resolveDefensePromise = null;
 
-            DOM.battleLog.innerHTML = '';
-            addLog('尋找咒靈中...');
+                    if (decision.action === 'take') {
+                        gs.player.life -= 1; showToast("承受了直接傷害！", "error"); checkWin();
+                    } else if (decision.action === 'block') {
+                        const pCardObj = gs.player.front[decision.defenderIdx]; const pCard = CARD_DICT[pCardObj.id]; pCardObj.rested = true;
+                        const pFinalBp = pCard.bp + (pCardObj.tempBp||0);
 
-            await new Promise(r => setTimeout(r, 800));
-            const ePower = Math.floor(pPower * (0.7 + Math.random() * 0.6));
-            DOM.enemyPower.textContent = ePower.toLocaleString();
-            addLog(`遭遇特級咒靈！戰力：${ePower}`);
-
-            await new Promise(r => setTimeout(r, 600));
-            addLog('領域展開中...');
-
-            await new Promise(r => setTimeout(r, 800));
-
-            if (pPower >= ePower) {
-                addLog(`【勝利】獲得 ${WIN_REWARD} 金幣！`, 'text-green-400 font-bold');
-                gameData.coins += WIN_REWARD;
-                DOM.battleArena.classList.add('battle-win', 'animate-shake');
-                showToast("戰鬥勝利！🎉", "success");
-            } else {
-                addLog(`【敗北】獲得 ${LOSE_REWARD} 金幣...`, 'text-red-400 font-bold');
-                gameData.coins += LOSE_REWARD;
-                DOM.battleArena.classList.add('battle-lose');
-                showToast("戰鬥敗北...💀", "warning");
+                        updateLog(`使用 ${pCard.name} 阻擋！`); await sleep(800);
+                        if(aFinalBp > pFinalBp) { gs.player.front.splice(decision.defenderIdx, 1); }
+                        else if(aFinalBp < pFinalBp) { gs.ai.front.splice(i, 1); i--; } 
+                        else { gs.player.front.splice(decision.defenderIdx, 1); gs.ai.front.splice(i, 1); i--; }
+                        
+                        const hasPierce = aCard.ability && aCard.ability.some(a=>a.type==='pierce');
+                        if(aFinalBp > pFinalBp && hasPierce) { gs.player.life -= 1; showToast("敵方貫穿傷害！", "error"); checkWin(); }
+                    }
+                    renderBoard(); await sleep(800);
+                }
             }
 
-            saveGameData();
-            updateMainUI();
-
-            setTimeout(() => {
-                DOM.btnStartBattle.disabled = false;
-                DOM.btnStartBattle.classList.remove('opacity-50');
-                DOM.btnStartBattle.textContent = '再次挑戰';
-                DOM.battleArena.classList.remove('animate-shake');
-            }, 1000);
+            gs.turn++; gs.player.ap = 3;
+            gs.player.front.forEach(c => {c.rested = false; c.tempBp = 0;}); gs.player.energy.forEach(c => c.rested = false); drawCard(gs.player);
+            updatePhaseUI('main'); showToast("您的回合開始！", "success");
         }
 
-        // ==========================================
-        // 主界面更新
-        // ==========================================
-        function updateMainUI() {
-            if (!gameData) return;
-            DOM.coinDisplay.textContent = gameData.coins.toLocaleString();
-            // 同步更新背包（若開啟中）
-            if (!modals.deck.classList.contains('hidden')) renderInventory();
-        }
-
-        // ==========================================
-        // 事件綁定
-        // ==========================================
-        document.querySelectorAll('.btn-close-modal').forEach(btn => btn.addEventListener('click', closeModal));
-        DOM.modalOverlay.addEventListener('click', (e) => { if (e.target === DOM.modalOverlay) closeModal(); });
-
-        document.getElementById('btn-open-gacha').addEventListener('click', () => openModal('gacha'));
-        document.getElementById('btn-open-deck').addEventListener('click', () => openModal('deck'));
-        document.getElementById('btn-open-battle').addEventListener('click', () => openModal('battle'));
-
-        document.getElementById('btn-draw-card').addEventListener('click', () => drawCards(1));
-        document.getElementById('btn-draw-ten').addEventListener('click', () => drawCards(10));
-        document.getElementById('btn-start-battle').addEventListener('click', startBattle);
-
-        document.getElementById('btn-reset').addEventListener('click', () => {
-            if (confirm('確定要重置所有存檔嗎？此操作無法復原！')) {
-                localStorage.removeItem(SAVE_KEY);
-                gameData = { coins: STARTER_COINS, inventory: [], deck: [] };
-                saveGameData();
-                updateMainUI();
-                closeModal();
-                showToast("存檔已重置", "info");
+        function checkWin() {
+            if(gs.ai.life <= 0) { 
+                let msg = `恭喜突破 ${gs.currentStage.name}！獲 ${gs.currentStage.reward} 金幣！`;
+                gameData.coins += gs.currentStage.reward; 
+                
+                // 推進度判定
+                const stageIndex = STAGE_DB.findIndex(s => s.id === gs.currentStage.id);
+                if (stageIndex === gameData.progress) {
+                    gameData.progress++;
+                    gameData.grade = GRADES[Math.min(gameData.progress, GRADES.length - 1)];
+                    msg += `\n\n🎉 階級提升為【${gameData.grade}】！\n解鎖了新的劇情關卡與擴充卡池！`;
+                    setTimeout(() => showIDCard(), 1500); // 秀出新證件
+                }
+                
+                alert(msg); saveData(); document.getElementById('btn-surrender').click(); 
+            } 
+            else if (gs.player.life <= 0) { 
+                alert(`戰鬥失敗...獲 ${Math.floor(gs.currentStage.reward/10)} 金幣補償。`); 
+                gameData.coins += Math.floor(gs.currentStage.reward/10); saveData(); document.getElementById('btn-surrender').click(); 
             }
-        });
+        }
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-        // ESC 關閉模態框
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-        });
-
-        // ==========================================
-        // 遊戲初始化
-        // ==========================================
         window.addEventListener('DOMContentLoaded', () => {
-            loadGameData();
-            updateMainUI();
-            showToast("歡迎來到領域對決！", "success");
+            // Wait for user login interaction.
         });
     </script>
 </body>
-
 </html>
