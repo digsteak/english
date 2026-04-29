@@ -14,15 +14,27 @@
             transition: background-color 2s;
         }
         body.map-2 { background-color: #2e0f1a; }
+        
         #game-container {
-            position: relative; box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
-            border: 4px solid #1f2833; background-color: #111e25;
-            aspect-ratio: 16/9; width: 100%; max-width: 100vw; max-height: 100vh;
+            position: relative; 
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+            border: 4px solid #1f2833; 
+            background-color: #111e25;
+            box-sizing: border-box;
+            
+            /* 完美的 16:9 視窗自適應縮放 */
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * 16 / 9);
+            max-height: calc(100vw * 9 / 16);
+            
             transition: background-color 2s, border-color 2s;
         }
         body.map-2 #game-container { background-color: #2a1118; border-color: #4a1525; }
+        
         canvas { display: block; cursor: crosshair; width: 100%; height: 100%; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
         .info-bar {
             position: absolute; top: 0; left: 0; width: 100%;
             background: rgba(11, 12, 16, 0.9); display: flex; justify-content: space-around;
@@ -31,6 +43,7 @@
         }
         .stat-item { display: flex; align-items: center; gap: 8px; }
         .stat-item span { color: #45a29e; font-size: 1.2em; text-shadow: 0 0 5px #45a29e; }
+        
         .control-bar-container {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: rgba(11, 12, 16, 0.95); pointer-events: auto; border-top: 2px solid #45a29e;
@@ -43,6 +56,7 @@
         .control-bar::-webkit-scrollbar { height: 10px; }
         .control-bar::-webkit-scrollbar-track { background: #1f2833; }
         .control-bar::-webkit-scrollbar-thumb { background: #45a29e; border-radius: 5px; }
+        
         .tower-btn {
             background: #1f2833; border: 2px solid #c5c6c7; color: white;
             padding: 8px 15px; cursor: pointer; border-radius: 8px;
@@ -182,7 +196,7 @@
                     </div>
                 </div>
                 <div class="tutorial-text">
-                    <b>戰術指引：</b> 將同等級的塔<b>合成</b>以獲取強大火力！按 P 暫停，按 M 一鍵合成，按 Del 拆除。
+                    <b>戰術指引：</b> 將同等級的塔<b>合成</b>以獲取強大火力！<br>快捷鍵：按 P 暫停，按 F 全螢幕，按 M 一鍵合成，按 Del 拆除。
                 </div>
             </div>
 
@@ -221,6 +235,7 @@
                     <button class="util-btn" id="pause-btn" onclick="togglePause()">⏸️ 暫停 (P)</button>
                     <button class="util-btn" id="automerge-btn" onclick="autoMerge()" style="border-color:#ffd700; color:#ffd700;">🔄 一鍵合成 (M)</button>
                     <button class="util-btn" id="ingame-shop-btn" onclick="toggleShop()" style="border-color:#e94560; color:#e94560;">🛒 商店 (B)</button>
+                    <button class="util-btn" id="fullscreen-btn" onclick="toggleFullScreen()" style="border-color:#b8f2e6; color:#b8f2e6;">⛶ 全螢幕 (F)</button>
                 </div>
 
                 <button id="next-wave-btn" class="btn-style" onclick="startNextWave()">下一波 (SPACE)</button>
@@ -384,6 +399,19 @@
             }
         }
         initTowerButtons();
+
+        // --- 全螢幕功能 ---
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    showToast(`無法進入全螢幕: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
 
         // --- 商店系統 ---
         function toggleShop() {
@@ -1182,6 +1210,7 @@
             if (e.code === 'KeyP') togglePause();
             if (e.code === 'KeyM') autoMerge();
             if (e.code === 'KeyB') toggleShop();
+            if (e.code === 'KeyF') toggleFullScreen();
         });
 
         function isPath(c, r) {
