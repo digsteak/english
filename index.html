@@ -319,7 +319,7 @@
             sniper: { name: '狙擊', cost: 280, range: 350 * DRAW_SCALE, damage: 90, cooldown: 110, color: '#7209b7', type: 'single', locked: false },
             
             // 戰役模式解鎖塔
-            ice:    { name: '冰霜', cost: 150, range: 120 * DRAW_SCALE, damage: 10, cooldown: 40, color: '#00ffff', type: 'slow', locked: true },
+            ice:    { name: '冰霜', cost: 150, range: 120 * DRAW_SCALE, damage: 10, cooldown: 40, color: '#00ffff', type: 'slow', slowDuration: 120, locked: true },
             cannon: { name: '加農', cost: 250, range: 160 * DRAW_SCALE, damage: 50, cooldown: 90, color: '#888888', type: 'cannon', locked: true }, 
             poison: { name: '毒液', cost: 200, range: 110 * DRAW_SCALE, damage: 5,  cooldown: 30, color: '#00ff00', type: 'poison', locked: true },
             tesla:  { name: '電磁', cost: 350, range: 140 * DRAW_SCALE, damage: 25, cooldown: 50, color: '#fee440', type: 'aoe', locked: true }, 
@@ -572,6 +572,55 @@
             }, 1000);
         }
 
+        // --- 塔防圖形產生器 ---
+        const TowerGraphics = {
+            cache: {},
+            init: function() {
+                for (let key in TOWER_TYPES) {
+                    const img = new Image();
+                    img.src = this.generateSVG(key, TOWER_TYPES[key]);
+                    this.cache[key] = img;
+                }
+            },
+            generateSVG: function(key, t) {
+                const c = t.color;
+                const base = `<polygon points="25,15 75,15 85,25 85,75 75,85 25,85 15,75 15,25" fill="#1f2833" stroke="${c}" stroke-width="3"/>
+                              <circle cx="50" cy="50" r="28" fill="#0b0c10" stroke="${c}" stroke-width="2"/>`;
+                
+                let weapon = '';
+                if(key==='bank') weapon = `<rect x="35" y="35" width="30" height="30" fill="#ffd700"/><text x="50" y="55" fill="#222" font-size="20" font-family="Arial" font-weight="bold" text-anchor="middle" dominant-baseline="central">$</text>`;
+                else if(key==='basic') weapon = `<rect x="50" y="44" width="30" height="12" fill="${c}" rx="3"/>`;
+                else if(key==='rapid') weapon = `<rect x="50" y="38" width="25" height="8" fill="${c}" rx="2"/><rect x="50" y="54" width="25" height="8" fill="${c}" rx="2"/>`;
+                else if(key==='sniper') weapon = `<rect x="50" y="46" width="48" height="8" fill="${c}"/><rect x="65" y="44" width="15" height="12" fill="#555"/>`;
+                else if(key==='ice') weapon = `<path d="M 50,15 L 65,50 L 50,85 L 35,50 Z" fill="${c}" opacity="0.8"/><circle cx="50" cy="50" r="10" fill="#fff"/>`;
+                else if(key==='cannon') weapon = `<rect x="50" y="40" width="35" height="20" fill="#888"/><circle cx="50" cy="50" r="15" fill="#333"/>`;
+                else if(key==='poison') weapon = `<circle cx="50" cy="50" r="18" fill="${c}"/><circle cx="55" cy="45" r="5" fill="#fff" opacity="0.6"/>`;
+                else if(key==='tesla') weapon = `<path d="M 50,25 L 75,25 M 50,75 L 75,75 M 65,25 L 65,75" stroke="${c}" stroke-width="6"/><circle cx="50" cy="50" r="15" fill="#fee440"/>`;
+                else if(key==='flame') weapon = `<path d="M 50,42 L 85,46 L 85,54 L 50,58 Z" fill="#ff4400"/><circle cx="50" cy="50" r="16" fill="#aa2200"/>`;
+                else if(key==='gatling') weapon = `<rect x="50" y="36" width="30" height="4" fill="#a0b0b0"/><rect x="50" y="45" width="35" height="4" fill="#a0b0b0"/><rect x="50" y="54" width="30" height="4" fill="#a0b0b0"/>`;
+                else if(key==='multishot') weapon = `<path d="M 50,50 L 80,15 M 50,50 L 90,50 M 50,50 L 80,85" stroke="${c}" stroke-width="6" stroke-linecap="round"/>`;
+                else if(key==='radar') weapon = `<path d="M 70,20 A 40 40 0 0 0 70,80" fill="none" stroke="${c}" stroke-width="4"/><circle cx="50" cy="50" r="12" fill="#fff"/>`;
+                else if(key==='plasma') weapon = `<rect x="40" y="35" width="40" height="10" fill="#d000ff" rx="4"/><rect x="40" y="55" width="40" height="10" fill="#d000ff" rx="4"/><circle cx="50" cy="50" r="14" fill="#fff"/>`;
+                else if(key==='laser' || key==='prism') weapon = `<polygon points="40,30 80,50 40,70" fill="${c}"/><polygon points="45,40 70,50 45,60" fill="#fff"/>`;
+                else if(key==='artillery') weapon = `<rect x="40" y="32" width="45" height="36" fill="${c}" rx="5"/><circle cx="50" cy="50" r="22" fill="#333"/>`;
+                else if(key==='emp') weapon = `<circle cx="50" cy="50" r="20" fill="none" stroke="${c}" stroke-width="4" stroke-dasharray="8 8"/><circle cx="50" cy="50" r="10" fill="${c}"/>`;
+                else if(key==='blackhole') weapon = `<circle cx="50" cy="50" r="22" fill="#000"/><path d="M 50,20 A 30 30 0 0 1 80,50 M 50,80 A 30 30 0 0 1 20,50" fill="none" stroke="${c}" stroke-width="4"/>`;
+                else if(key==='dronepad') weapon = `<polygon points="50,20 75,35 75,65 50,80 25,65 25,35" fill="none" stroke="${c}" stroke-width="4"/><circle cx="50" cy="50" r="8" fill="#fff"/>`;
+                else if(key==='railgun') weapon = `<rect x="30" y="35" width="60" height="8" fill="#2962ff"/><rect x="30" y="57" width="60" height="8" fill="#2962ff"/><rect x="40" y="30" width="20" height="40" fill="#fff"/>`;
+                else if(key==='nuke') weapon = `<path d="M 40,35 L 75,50 L 40,65 Z" fill="#ff9900"/><circle cx="50" cy="50" r="14" fill="#660000"/>`;
+                else if(key==='orbital') weapon = `<circle cx="50" cy="50" r="26" fill="none" stroke="#fff" stroke-width="4"/><rect x="45" y="10" width="10" height="30" fill="${c}"/><circle cx="50" cy="20" r="6" fill="#ff0000"/>`;
+                else if(key==='vampire') weapon = `<polygon points="50,20 80,50 50,80 20,50" fill="${c}"/><circle cx="50" cy="50" r="10" fill="#fff"/>`;
+                else if(key==='greed') weapon = `<polygon points="50,15 62,38 85,42 68,58 72,82 50,72 28,82 32,58 15,42 38,38" fill="${c}"/><text x="50" y="55" fill="#000" font-size="24" font-weight="bold" text-anchor="middle" dominant-baseline="central">+</text>`;
+                else if(key==='chrono') weapon = `<polygon points="30,25 70,25 40,50 70,75 30,75 60,50" fill="${c}"/>`;
+                else if(key==='doom') weapon = `<rect x="40" y="25" width="40" height="50" fill="${c}"/><rect x="75" y="35" width="10" height="30" fill="#000"/><rect x="35" y="35" width="20" height="30" fill="#444"/>`;
+                else weapon = `<circle cx="50" cy="50" r="20" fill="${c}"/>`;
+
+                const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${base}${weapon}</svg>`;
+                return 'data:image/svg+xml,' + encodeURIComponent(svgStr);
+            }
+        };
+        TowerGraphics.init();
+
         // --- 核心類別 ---
         class Enemy {
             constructor(wave, typeKey, x, y, pathIdx) {
@@ -822,29 +871,31 @@
                     ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
                     if (this.range > 0) { ctx.beginPath(); ctx.arc(0, 0, this.range / DRAW_SCALE, 0, Math.PI*2); ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1; ctx.stroke(); }
                 }
-                ctx.fillStyle = '#222';
-                if (this.level >= 5) { ctx.strokeStyle = this.level > 5 ? '#ff00ff' : '#ffd700'; ctx.lineWidth = 2; ctx.strokeRect(-15, -15, 30, 30); }
-                ctx.fillRect(-14, -14, 28, 28); 
-                ctx.rotate(this.angle); ctx.fillStyle = this.color;
+                // 畫外框特效 (高等級發光)
+                if (this.level >= 5) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.level > 5 ? '#ff00ff' : '#ffd700';
+                    ctx.strokeStyle = this.level > 5 ? '#ff00ff' : '#ffd700'; 
+                    ctx.lineWidth = 2; 
+                    ctx.strokeRect(-22, -22, 44, 44); 
+                    ctx.shadowBlur = 0;
+                }
+
+                // 特殊邏輯：雷達自我旋轉動畫
+                if (this.type === 'radar') {
+                    this.angle += 0.05;
+                }
+
+                // 旋轉塔防影像
+                ctx.rotate(this.angle); 
                 
-                const t = this.type;
-                if(t==='bank'){ ctx.fillStyle='#ffd700'; ctx.fillRect(-10,-10,20,20); ctx.fillStyle='#222'; ctx.font='14px Arial'; ctx.fillText('$',0,5); } 
-                else if(t==='basic'){ if(this.level>=3){ ctx.fillRect(0,-8,24,6); ctx.fillRect(0,2,24,6); }else{ ctx.fillRect(0,-5,20+(this.level*2),10); } ctx.fillRect(-10,-10,20,20); } 
-                else if(t==='radar'){ ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI,true); ctx.fill(); ctx.fillRect(-2,0,4,8); ctx.rotate(Date.now()/500); ctx.fillStyle='#fff'; ctx.fillRect(-12,-2,24,2); } 
-                else if(t==='blackhole'){ ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#5500aa'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.stroke(); } 
-                else if(t==='multishot'){ ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(0,10); ctx.lineTo(0,-10); ctx.fill(); ctx.fillRect(0,-8,10,2); ctx.fillRect(0,6,10,2); ctx.fillRect(0,-1,15,2); } 
-                else if(t==='poison'){ ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(3,3,3,0,Math.PI*2); ctx.arc(-4,-4,4,0,Math.PI*2); ctx.fill(); }
-                else if(t==='artillery'){ ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill(); ctx.fillStyle=this.color; ctx.fillRect(0,-10,30,20); }
-                else if(t==='emp'){ ctx.fillRect(-12,-12,24,24); ctx.strokeStyle='#fff'; ctx.strokeRect(-8,-8,16,16); }
-                else if(t==='dronepad'){ ctx.beginPath(); for(let i=0;i<6;i++){ ctx.lineTo(14*Math.cos(i*Math.PI/3),14*Math.sin(i*Math.PI/3)); } ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill(); }
-                else if(t==='railgun'){ ctx.fillRect(0,-8,35,4); ctx.fillRect(0,4,35,4); ctx.fillStyle='#fff'; ctx.fillRect(-10,-10,20,20); }
-                else if(t==='orbital'){ ctx.beginPath(); ctx.arc(0,0,12,Math.PI,Math.PI*2); ctx.fill(); ctx.fillRect(-2,-20,4,20); ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(0,-20,3,0,Math.PI*2); ctx.fill(); }
-                else if(t==='laser' || t==='prism'){ ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-8,10); ctx.lineTo(-8,-10); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(5,0); ctx.lineTo(-2,4); ctx.lineTo(-2,-4); ctx.fill(); }
-                else if(t==='vampire') { ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(12,0); ctx.lineTo(0,12); ctx.lineTo(-12,0); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill(); }
-                else if(t==='greed') { ctx.beginPath(); for(let i=0;i<5;i++){ ctx.lineTo(12*Math.cos(i*Math.PI*2/5 - Math.PI/2),12*Math.sin(i*Math.PI*2/5 - Math.PI/2)); } ctx.fill(); ctx.fillStyle='#fff'; ctx.font='14px Arial'; ctx.fillText('+',0,5); }
-                else if(t==='chrono') { ctx.beginPath(); ctx.moveTo(-10,-10); ctx.lineTo(10,-10); ctx.lineTo(-5,0); ctx.lineTo(10,10); ctx.lineTo(-10,10); ctx.lineTo(5,0); ctx.fill(); }
-                else if(t==='doom') { ctx.fillStyle='#444'; ctx.fillRect(-10,-10,20,20); ctx.fillStyle=this.color; ctx.fillRect(0,-12,30,24); ctx.fillStyle='#000'; ctx.fillRect(25,-8,5,16); }
-                else { ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill(); ctx.fillRect(0,-4,24+this.level*2,8); }
+                // 繪製生成的高畫質 SVG 貼圖
+                const img = TowerGraphics.cache[this.type];
+                if (img && img.complete) {
+                    let displaySize = 44; 
+                    ctx.drawImage(img, -displaySize/2, -displaySize/2, displaySize, displaySize);
+                }
+
                 ctx.restore();
                 
                 ctx.fillStyle = '#ffd700'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center';
