@@ -621,6 +621,179 @@
         };
         TowerGraphics.init();
 
+        // --- 小怪 SVG 圖形產生器 ---
+        const EnemyGraphics = {
+            cache: {},
+            init: function() {
+                for (let key in ENEMY_TYPES) {
+                    const img = new Image();
+                    img.src = this.generateSVG(key, ENEMY_TYPES[key]);
+                    this.cache[key] = img;
+                }
+            },
+            generateSVG: function(key, t) {
+                const c = t.color;
+                let body = '';
+                if (key === 'normal') {
+                    // 外星蟲族：圓身+觸角+發光複眼
+                    body = `<ellipse cx="50" cy="55" rx="28" ry="24" fill="${c}"/>
+                    <ellipse cx="50" cy="55" rx="28" ry="24" fill="url(#nGrad)" opacity="0.6"/>
+                    <ellipse cx="50" cy="60" rx="20" ry="14" fill="${c}" opacity="0.5"/>
+                    <path d="M35,35 Q30,15 20,10" stroke="${c}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <path d="M65,35 Q70,15 80,10" stroke="${c}" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <circle cx="20" cy="10" r="4" fill="#ff0"/>
+                    <circle cx="80" cy="10" r="4" fill="#ff0"/>
+                    <ellipse cx="40" cy="45" rx="7" ry="9" fill="#200"/>
+                    <ellipse cx="60" cy="45" rx="7" ry="9" fill="#200"/>
+                    <ellipse cx="41" cy="44" rx="4" ry="5" fill="#f44"/>
+                    <ellipse cx="61" cy="44" rx="4" ry="5" fill="#f44"/>
+                    <ellipse cx="42" cy="43" rx="2" ry="2" fill="#fff"/>
+                    <ellipse cx="62" cy="43" rx="2" ry="2" fill="#fff"/>
+                    <path d="M38,68 Q50,78 62,68" stroke="#a11" stroke-width="2" fill="none"/>
+                    <defs><radialGradient id="nGrad"><stop offset="0%" stop-color="#fff" stop-opacity="0.4"/><stop offset="100%" stop-color="${c}" stop-opacity="0"/></radialGradient></defs>`;
+                } else if (key === 'scout') {
+                    // 高速偵察機：流線戰機+引擎尾焰
+                    body = `<polygon points="85,50 25,25 35,45 25,50 35,55 25,75" fill="${c}"/>
+                    <polygon points="85,50 25,25 25,75" fill="url(#sGrad)" opacity="0.5"/>
+                    <polygon points="40,45 60,50 40,55" fill="#fff" opacity="0.6"/>
+                    <rect x="55" y="47" width="20" height="6" rx="2" fill="#fff" opacity="0.3"/>
+                    <circle cx="70" cy="50" r="4" fill="#0ff"/>
+                    <circle cx="70" cy="50" r="2" fill="#fff"/>
+                    <polygon points="25,48 10,46 12,50 10,54 25,52" fill="#f80" opacity="0.8"/>
+                    <polygon points="25,48 15,48 17,50 15,52 25,52" fill="#ff0" opacity="0.6"/>
+                    <line x1="30" y1="30" x2="45" y2="42" stroke="${c}" stroke-width="2" opacity="0.5"/>
+                    <line x1="30" y1="70" x2="45" y2="58" stroke="${c}" stroke-width="2" opacity="0.5"/>
+                    <defs><linearGradient id="sGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fff" stop-opacity="0.3"/><stop offset="100%" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>`;
+                } else if (key === 'tank') {
+                    // 重裝甲獸：厚裝甲殼+履帶紋+護盾
+                    body = `<rect x="15" y="25" width="70" height="50" rx="8" fill="#555"/>
+                    <rect x="20" y="30" width="60" height="40" rx="5" fill="${c}"/>
+                    <rect x="20" y="30" width="60" height="40" rx="5" fill="url(#tGrad)" opacity="0.4"/>
+                    <rect x="25" y="35" width="50" height="30" rx="3" fill="#444"/>
+                    <rect x="30" y="40" width="40" height="20" rx="2" fill="#333"/>
+                    <circle cx="50" cy="50" r="10" fill="${c}"/>
+                    <circle cx="50" cy="50" r="6" fill="#fff" opacity="0.3"/>
+                    <rect x="60" y="46" width="25" height="8" rx="2" fill="#aaa"/>
+                    <rect x="15" y="20" width="70" height="6" rx="2" fill="#333" stroke="#555" stroke-width="1"/>
+                    <rect x="15" y="74" width="70" height="6" rx="2" fill="#333" stroke="#555" stroke-width="1"/>
+                    <line x1="20" y1="22" x2="20" y2="26" stroke="#777" stroke-width="3"/>
+                    <line x1="35" y1="22" x2="35" y2="26" stroke="#777" stroke-width="3"/>
+                    <line x1="50" y1="22" x2="50" y2="26" stroke="#777" stroke-width="3"/>
+                    <line x1="65" y1="22" x2="65" y2="26" stroke="#777" stroke-width="3"/>
+                    <line x1="80" y1="22" x2="80" y2="26" stroke="#777" stroke-width="3"/>
+                    <line x1="20" y1="76" x2="20" y2="80" stroke="#777" stroke-width="3"/>
+                    <line x1="35" y1="76" x2="35" y2="80" stroke="#777" stroke-width="3"/>
+                    <line x1="50" y1="76" x2="50" y2="80" stroke="#777" stroke-width="3"/>
+                    <line x1="65" y1="76" x2="65" y2="80" stroke="#777" stroke-width="3"/>
+                    <line x1="80" y1="76" x2="80" y2="80" stroke="#777" stroke-width="3"/>
+                    <defs><linearGradient id="tGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="100%" stop-color="#000" stop-opacity="0.3"/></linearGradient></defs>`;
+                } else if (key === 'healer') {
+                    // 醫療浮游體：六角水晶+治癒十字
+                    body = `<polygon points="50,15 80,32 80,68 50,85 20,68 20,32" fill="${c}" opacity="0.7"/>
+                    <polygon points="50,15 80,32 80,68 50,85 20,68 20,32" fill="none" stroke="#fff" stroke-width="2" opacity="0.5"/>
+                    <polygon points="50,25 70,37 70,63 50,75 30,63 30,37" fill="${c}" opacity="0.5"/>
+                    <rect x="45" y="30" width="10" height="40" rx="2" fill="#fff"/>
+                    <rect x="30" y="45" width="40" height="10" rx="2" fill="#fff"/>
+                    <circle cx="50" cy="50" r="8" fill="#fff" opacity="0.6"/>
+                    <circle cx="50" cy="50" r="4" fill="${c}"/>
+                    <circle cx="50" cy="50" r="22" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>`;
+                } else if (key === 'stealth') {
+                    // 幽靈刺客：隱形斗篷+鬼火眼
+                    body = `<path d="M50,10 Q80,30 75,60 Q70,85 60,90 Q55,80 50,90 Q45,80 40,90 Q30,85 25,60 Q20,30 50,10Z" fill="${c}" opacity="0.6"/>
+                    <path d="M50,10 Q80,30 75,60 Q70,85 60,90 Q55,80 50,90 Q45,80 40,90 Q30,85 25,60 Q20,30 50,10Z" fill="url(#stGrad)" opacity="0.4"/>
+                    <ellipse cx="40" cy="40" rx="8" ry="6" fill="#000"/>
+                    <ellipse cx="60" cy="40" rx="8" ry="6" fill="#000"/>
+                    <ellipse cx="40" cy="40" rx="5" ry="4" fill="#e0f"/>
+                    <ellipse cx="60" cy="40" rx="5" ry="4" fill="#e0f"/>
+                    <ellipse cx="41" cy="39" rx="2" ry="2" fill="#fff"/>
+                    <ellipse cx="61" cy="39" rx="2" ry="2" fill="#fff"/>
+                    <defs><linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.3"/><stop offset="100%" stop-color="#000" stop-opacity="0.5"/></linearGradient></defs>`;
+                } else if (key === 'drone') {
+                    // 微型蜂群機：蜜蜂型小無人機
+                    body = `<ellipse cx="50" cy="50" rx="18" ry="14" fill="${c}"/>
+                    <ellipse cx="50" cy="50" rx="10" ry="8" fill="#fff" opacity="0.2"/>
+                    <ellipse cx="35" cy="35" rx="14" ry="6" fill="#fff" opacity="0.3" transform="rotate(-30,35,35)"/>
+                    <ellipse cx="65" cy="35" rx="14" ry="6" fill="#fff" opacity="0.3" transform="rotate(30,65,35)"/>
+                    <circle cx="55" cy="46" r="3" fill="#ff0"/>
+                    <circle cx="55" cy="46" r="1.5" fill="#fff"/>
+                    <line x1="50" y1="64" x2="45" y2="75" stroke="${c}" stroke-width="1.5"/>
+                    <line x1="50" y1="64" x2="55" y2="75" stroke="${c}" stroke-width="1.5"/>`;
+                } else if (key === 'boss_berserker') {
+                    // 狂暴魔王：熔岩裂紋骷髏+火焰冠
+                    body = `<circle cx="50" cy="55" r="32" fill="#330000"/>
+                    <circle cx="50" cy="55" r="30" fill="${c}"/>
+                    <circle cx="50" cy="55" r="30" fill="url(#bbGrad)"/>
+                    <path d="M20,30 L30,10 L35,28" fill="#f80" opacity="0.9"/>
+                    <path d="M35,22 L42,5 L45,22" fill="#ff0" opacity="0.8"/>
+                    <path d="M45,18 L50,0 L55,18" fill="#f80" opacity="0.9"/>
+                    <path d="M55,22 L58,5 L65,22" fill="#ff0" opacity="0.8"/>
+                    <path d="M65,28 L70,10 L80,30" fill="#f80" opacity="0.9"/>
+                    <rect x="33" y="42" width="14" height="18" rx="3" fill="#111"/>
+                    <rect x="53" y="42" width="14" height="18" rx="3" fill="#111"/>
+                    <circle cx="40" cy="50" r="5" fill="#ff0"/>
+                    <circle cx="60" cy="50" r="5" fill="#ff0"/>
+                    <circle cx="40" cy="50" r="2" fill="#f00"/>
+                    <circle cx="60" cy="50" r="2" fill="#f00"/>
+                    <path d="M38,72 L42,68 L46,72 L50,66 L54,72 L58,68 L62,72" stroke="#111" stroke-width="2" fill="none"/>
+                    <line x1="30" y1="55" x2="25" y2="65" stroke="#f80" stroke-width="2" opacity="0.6"/>
+                    <line x1="70" y1="55" x2="75" y2="65" stroke="#f80" stroke-width="2" opacity="0.6"/>
+                    <line x1="45" y1="35" x2="55" y2="35" stroke="#f80" stroke-width="1" opacity="0.4"/>
+                    <defs><radialGradient id="bbGrad"><stop offset="30%" stop-color="#ff0" stop-opacity="0.2"/><stop offset="100%" stop-color="#300" stop-opacity="0.5"/></radialGradient></defs>`;
+                } else if (key === 'boss_carrier') {
+                    // 母艦：大型六角機械飛船+格納庫
+                    body = `<polygon points="50,8 88,28 88,72 50,92 12,72 12,28" fill="#222"/>
+                    <polygon points="50,8 88,28 88,72 50,92 12,72 12,28" fill="none" stroke="${c}" stroke-width="3"/>
+                    <polygon points="50,18 78,33 78,67 50,82 22,67 22,33" fill="#1a0a20"/>
+                    <rect x="30" y="38" width="40" height="24" fill="#111" stroke="${c}" stroke-width="1"/>
+                    <rect x="35" y="42" width="12" height="8" fill="${c}" opacity="0.5"/>
+                    <rect x="53" y="42" width="12" height="8" fill="${c}" opacity="0.5"/>
+                    <rect x="35" y="54" width="12" height="4" fill="#e040fb" opacity="0.6"/>
+                    <rect x="53" y="54" width="12" height="4" fill="#e040fb" opacity="0.6"/>
+                    <circle cx="50" cy="50" r="6" fill="${c}"/>
+                    <circle cx="50" cy="50" r="3" fill="#fff"/>
+                    <line x1="12" y1="50" x2="22" y2="50" stroke="${c}" stroke-width="2"/>
+                    <line x1="78" y1="50" x2="88" y2="50" stroke="${c}" stroke-width="2"/>`;
+                } else if (key === 'boss_armored') {
+                    // 鋼鐵堡壘：三層裝甲+齒輪
+                    body = `<circle cx="50" cy="50" r="35" fill="#333"/>
+                    <circle cx="50" cy="50" r="32" fill="${c}"/>
+                    <circle cx="50" cy="50" r="32" fill="url(#baGrad)" opacity="0.5"/>
+                    <circle cx="50" cy="50" r="24" fill="#444" stroke="#888" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="16" fill="#333" stroke="#aaa" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="8" fill="#fff" opacity="0.3"/>
+                    <circle cx="50" cy="50" r="4" fill="#f00"/>
+                    <rect x="47" y="10" width="6" height="14" fill="#888"/>
+                    <rect x="47" y="76" width="6" height="14" fill="#888"/>
+                    <rect x="10" y="47" width="14" height="6" fill="#888"/>
+                    <rect x="76" y="47" width="14" height="6" fill="#888"/>
+                    <rect x="20" y="18" width="5" height="10" fill="#888" transform="rotate(45,22,23)"/>
+                    <rect x="75" y="18" width="5" height="10" fill="#888" transform="rotate(-45,77,23)"/>
+                    <rect x="20" y="72" width="5" height="10" fill="#888" transform="rotate(-45,22,77)"/>
+                    <rect x="75" y="72" width="5" height="10" fill="#888" transform="rotate(45,77,77)"/>
+                    <defs><radialGradient id="baGrad"><stop offset="0%" stop-color="#fff" stop-opacity="0.3"/><stop offset="100%" stop-color="#000" stop-opacity="0.4"/></radialGradient></defs>`;
+                } else if (key === 'boss_teleporter') {
+                    // 時空裂隙：傳送門漩渦+次元裂縫
+                    body = `<circle cx="50" cy="50" r="30" fill="#000"/>
+                    <circle cx="50" cy="50" r="28" fill="url(#btGrad)"/>
+                    <path d="M50,22 A28,28 0 0,1 78,50" fill="none" stroke="${c}" stroke-width="4" opacity="0.9"/>
+                    <path d="M78,50 A28,28 0 0,1 50,78" fill="none" stroke="#00f" stroke-width="3" opacity="0.7"/>
+                    <path d="M50,78 A28,28 0 0,1 22,50" fill="none" stroke="${c}" stroke-width="4" opacity="0.9"/>
+                    <path d="M22,50 A28,28 0 0,1 50,22" fill="none" stroke="#00f" stroke-width="3" opacity="0.7"/>
+                    <circle cx="50" cy="50" r="18" fill="none" stroke="#44f" stroke-width="2" stroke-dasharray="6 3" opacity="0.5"/>
+                    <circle cx="50" cy="50" r="10" fill="${c}" opacity="0.8"/>
+                    <circle cx="50" cy="50" r="5" fill="#fff"/>
+                    <line x1="50" y1="12" x2="50" y2="20" stroke="#fff" stroke-width="2" opacity="0.5"/>
+                    <line x1="50" y1="80" x2="50" y2="88" stroke="#fff" stroke-width="2" opacity="0.5"/>
+                    <line x1="12" y1="50" x2="20" y2="50" stroke="#fff" stroke-width="2" opacity="0.5"/>
+                    <line x1="80" y1="50" x2="88" y2="50" stroke="#fff" stroke-width="2" opacity="0.5"/>
+                    <defs><radialGradient id="btGrad"><stop offset="0%" stop-color="${c}" stop-opacity="0.6"/><stop offset="60%" stop-color="#006" stop-opacity="0.3"/><stop offset="100%" stop-color="#000" stop-opacity="0.8"/></radialGradient></defs>`;
+                }
+                const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${body}</svg>`;
+                return 'data:image/svg+xml,' + encodeURIComponent(svgStr);
+            }
+        };
+        EnemyGraphics.init();
+
         // --- 核心類別 ---
         class Enemy {
             constructor(wave, typeKey, x, y, pathIdx) {
@@ -731,41 +904,53 @@
             }
 
             draw() {
-                ctx.save(); ctx.translate(this.x, this.y); ctx.scale(DRAW_SCALE, DRAW_SCALE);
-                const baseR = this.radius / DRAW_SCALE;
+                const img = EnemyGraphics.cache[this.typeKey];
+                const drawSize = this.radius * 2.5;
+                ctx.save();
+                ctx.translate(this.x, this.y);
 
-                if (this.isBoss) {
-                    ctx.rotate(this.angle);
-                    if (this.typeKey === 'boss_berserker') {
-                        ctx.fillStyle = this.color; ctx.beginPath();
-                        for(let i=0; i<8; i++) { ctx.lineTo(baseR * Math.cos(i*Math.PI/4), baseR * Math.sin(i*Math.PI/4)); ctx.lineTo((baseR+8) * Math.cos(i*Math.PI/4 + Math.PI/8), (baseR+8) * Math.sin(i*Math.PI/4 + Math.PI/8)); }
-                        ctx.closePath(); ctx.fill(); ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0,0,baseR/2,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(0,0,baseR/4,0,Math.PI*2); ctx.fill();
-                    } else if (this.typeKey === 'boss_carrier') {
-                        ctx.fillStyle = this.color; ctx.beginPath(); ctx.moveTo(baseR, 0); ctx.lineTo(baseR/2, baseR); ctx.lineTo(-baseR/2, baseR); ctx.lineTo(-baseR, 0); ctx.lineTo(-baseR/2, -baseR); ctx.lineTo(baseR/2, -baseR); ctx.fill(); 
-                        ctx.fillStyle = '#000'; ctx.fillRect(-baseR/2, -baseR/2, baseR, baseR); ctx.fillStyle = '#e040fb'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
-                    } else if (this.typeKey === 'boss_armored') {
-                        ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(0,0,baseR,0,Math.PI*2); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
-                        ctx.beginPath(); ctx.arc(0,0,baseR+4, -Math.PI/4, Math.PI/4); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,baseR+4, Math.PI - Math.PI/4, Math.PI + Math.PI/4); ctx.stroke();
-                    } else if (this.typeKey === 'boss_teleporter') {
-                        ctx.strokeStyle = this.color; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0,0,baseR, 0, Math.PI); ctx.stroke();
-                        ctx.beginPath(); ctx.arc(0,0,baseR-4, Math.PI, Math.PI*2); ctx.stroke(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0,0,baseR/2,0,Math.PI*2); ctx.fill();
-                    }
-                } else {
-                    if (this.typeKey === 'stealth') { ctx.globalAlpha = 0.3 + 0.7 * Math.abs(Math.sin(this.stealthPhase)); }
-                    if (this.stunTimer > 0) ctx.fillStyle = '#ffffff'; else if (this.slowTimer > 0) ctx.fillStyle = '#80deea'; else if (this.poisonTimer > 0) ctx.fillStyle = '#b2ff59'; else if (this.stuck) ctx.fillStyle = '#555'; else if (this.burnTimer > 0 && Math.floor(Date.now()/100)%2===0) ctx.fillStyle = '#ff5500'; else ctx.fillStyle = this.color;
+                // 隱形效果
+                if (this.typeKey === 'stealth') ctx.globalAlpha = 0.3 + 0.7 * Math.abs(Math.sin(this.stealthPhase));
 
-                    if (this.typeKey === 'normal') { ctx.beginPath(); ctx.arc(0, 0, baseR, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(-baseR, -2, 4, 4); } 
-                    else if (this.typeKey === 'scout') { ctx.beginPath(); ctx.moveTo(baseR, 0); ctx.lineTo(-baseR, baseR/2); ctx.lineTo(-baseR/2, 0); ctx.lineTo(-baseR, -baseR/2); ctx.fill(); } 
-                    else if (this.typeKey === 'tank') { ctx.beginPath(); for(let i=0; i<8; i++) { ctx.lineTo(baseR*Math.cos(i*Math.PI/4), baseR*Math.sin(i*Math.PI/4)); } ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 3; ctx.stroke(); } 
-                    else if (this.typeKey === 'healer') { ctx.beginPath(); ctx.arc(0,0,baseR,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(-baseR/2+2, -2, baseR-4, 4); ctx.fillRect(-2, -baseR/2+2, 4, baseR-4); } 
-                    else if (this.typeKey === 'stealth') { ctx.beginPath(); ctx.moveTo(0, -baseR); ctx.lineTo(baseR/2, 0); ctx.lineTo(0, baseR); ctx.lineTo(-baseR/2, 0); ctx.fill(); ctx.globalAlpha = 1.0; } 
-                    else if (this.typeKey === 'drone') { ctx.beginPath(); ctx.moveTo(baseR, 0); ctx.lineTo(-baseR, baseR); ctx.lineTo(-baseR, -baseR); ctx.fill(); }
+                // Boss 旋轉
+                if (this.isBoss) ctx.rotate(this.angle);
+
+                // 繪製 SVG 圖像
+                if (img && img.complete) {
+                    ctx.drawImage(img, -drawSize/2, -drawSize/2, drawSize, drawSize);
                 }
+
+                // 狀態效果覆蓋色
+                if (this.stunTimer > 0 || this.slowTimer > 0 || this.poisonTimer > 0 || this.stuck || (this.burnTimer > 0 && Math.floor(Date.now()/100)%2===0)) {
+                    ctx.globalCompositeOperation = 'source-atop';
+                    if (this.stunTimer > 0) ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    else if (this.slowTimer > 0) ctx.fillStyle = 'rgba(128,222,234,0.4)';
+                    else if (this.poisonTimer > 0) ctx.fillStyle = 'rgba(178,255,89,0.4)';
+                    else if (this.stuck) ctx.fillStyle = 'rgba(85,85,85,0.5)';
+                    else ctx.fillStyle = 'rgba(255,85,0,0.5)';
+                    ctx.fillRect(-drawSize/2, -drawSize/2, drawSize, drawSize);
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+
+                // Boss 額外光環特效
+                if (this.isBoss) {
+                    const glowR = drawSize * 0.6;
+                    ctx.globalAlpha = 0.15 + 0.1 * Math.sin(Date.now() / 300);
+                    ctx.beginPath(); ctx.arc(0, 0, glowR, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color; ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+
                 ctx.restore();
 
+                // 血量條
                 const hpPct = this.hp / this.maxHp;
-                ctx.fillStyle = 'red'; ctx.fillRect(this.x - 12 * DRAW_SCALE, this.y - this.radius - 8 * DRAW_SCALE, 24 * DRAW_SCALE, 4 * DRAW_SCALE);
-                ctx.fillStyle = '#00ff00'; ctx.fillRect(this.x - 12 * DRAW_SCALE, this.y - this.radius - 8 * DRAW_SCALE, 24 * DRAW_SCALE * hpPct, 4 * DRAW_SCALE);
+                const barW = 24 * DRAW_SCALE; const barH = 4 * DRAW_SCALE;
+                const barX = this.x - barW / 2; const barY = this.y - this.radius - 8 * DRAW_SCALE;
+                ctx.fillStyle = '#440000'; ctx.fillRect(barX, barY, barW, barH);
+                const hpColor = hpPct > 0.5 ? '#00ff00' : hpPct > 0.25 ? '#ffaa00' : '#ff0000';
+                ctx.fillStyle = hpColor; ctx.fillRect(barX, barY, barW * hpPct, barH);
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(barX, barY, barW, barH);
             }
         }
 
