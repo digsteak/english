@@ -247,7 +247,7 @@
                 <div id="tower-stats-panel" style="display: none; position: absolute; left: 20px; top: 120px; background: rgba(11, 12, 16, 0.95); border: 2px solid #45a29e; border-radius: 10px; padding: 15px; color: #fff; width: 250px; pointer-events: none; z-index: 50; box-shadow: 0 0 15px rgba(69, 162, 158, 0.3);">
                     <h3 id="ts-name" style="margin-top: 0; margin-bottom: 15px; color: #66fcf1; text-align: center; font-size: 22px; text-shadow: 0 0 5px #66fcf1;">塔房名稱</h3>
                     <div style="margin-bottom: 8px; font-size: 16px;">⚔️ 攻擊力: <span id="ts-damage" style="color: #ffd700; font-weight: bold;">0</span></div>
-                    <div style="margin-bottom: 8px; font-size: 16px;">⚡ 攻擊頻率: <span id="ts-speed" style="color: #ffd700; font-weight: bold;">0</span> /秒</div>
+                    <div style="margin-bottom: 8px; font-size: 16px;">⚡ 攻擊頻率: <span id="ts-speed" style="color: #ffd700; font-weight: bold;">0</span> 秒/次</div>
                     <div style="margin-bottom: 8px; font-size: 16px;">🎯 擊殺數: <span id="ts-kills" style="color: #ffd700; font-weight: bold;">0</span></div>
                     <div style="margin-bottom: 8px; font-size: 16px;">💰 出售價值: <span id="ts-sell" style="color: #ff3333; font-weight: bold;">0</span></div>
                     <div style="margin-top: 15px; font-size: 14px; color: #c5c6c7; border-top: 1px solid #45a29e; padding-top: 10px; line-height: 1.4;" id="ts-desc">塔房能力說明</div>
@@ -1607,7 +1607,7 @@
                     const intervalSec = (cd / 60).toFixed(1);
                     speedText = `每 ${intervalSec} 秒產幣`;
                 } else {
-                    speedText = cd > 0 ? (60 / cd).toFixed(1) : '∞';
+                    speedText = cd > 0 ? (cd / 60).toFixed(1) : '0';
                 }
                 document.getElementById('ts-speed').innerText = speedText;
                 
