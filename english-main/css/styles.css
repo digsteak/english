@@ -1,0 +1,230 @@
+/* ============================================================
+   styles.css — 星際合成塔防 EX 全域樣式
+   ============================================================ */
+
+body {
+    margin: 0; padding: 0;
+    background-color: #0b0c10; color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100vh; width: 100vw; overflow: hidden; user-select: none;
+    transition: background-color 2s;
+}
+body.map-2 { background-color: #2e0f1a; }
+
+/* --- 外層容器 --- */
+#app-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+background: #0b0c10;
+}
+body.map-2 #game-container { background-color: #2a1118; border-color: #4a1525; }
+
+#canvas-area {
+    position: relative;
+    width: 1024px;
+    height: 576px;
+    flex-shrink: 0;
+}
+
+canvas { display: block; cursor: crosshair; width: 100%; height: 100%; flex-shrink: 0; }
+#ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* --- 右側 UI 面板 --- */
+#ui-panel {
+    width: 280px;
+    height: 576px;
+    background: #1f2833;
+    border: 4px solid #1f2833;
+    border-left: none;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+    overflow-y: auto;
+}
+body.map-2 #ui-panel { background: #2a1118; border-color: #4a1525; }
+
+.panel-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(11, 12, 16, 0.7);
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #45a29e;
+}
+.stat-item { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: bold; }
+.stat-item span { color: #45a29e; font-size: 1.1em; text-shadow: 0 0 5px #45a29e; }
+
+.panel-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(11, 12, 16, 0.7);
+    border-radius: 8px;
+    border: 1px solid #45a29e;
+}
+.panel-btn {
+    background: rgba(31, 40, 51, 0.9); color: #66fcf1; border: 1px solid #45a29e;
+    padding: 6px 10px; border-radius: 5px; cursor: pointer; pointer-events: auto;
+    font-size: 13px; font-weight: bold; transition: background 0.2s; flex: 1; min-width: 70px;
+}
+.panel-btn:hover { background: rgba(69, 162, 158, 0.4); }
+
+.panel-towers {
+    flex: 1;
+    min-height: 0;
+    background: rgba(11, 12, 16, 0.7);
+    border-radius: 8px;
+    border: 1px solid #45a29e;
+    overflow-y: auto;
+}
+
+/* --- 控制列 --- */
+.control-bar {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    padding: 8px; gap: 6px; overflow-y: auto;
+}
+
+/* --- 塔防按鈕 --- */
+.tower-btn {
+    background: #1f2833; border: 2px solid #c5c6c7; color: white;
+    padding: 4px 8px; cursor: pointer; border-radius: 6px;
+    transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
+    min-width: 60px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.tower-btn:hover { background: #2b3a4a; transform: translateY(-2px); border-color: white !important; }
+.tower-btn.selected { background: #45a29e; border-color: white !important; box-shadow: 0 0 15px #66fcf1; }
+.tower-btn span { font-size: 12px; font-weight: bold; }
+.tower-btn small { font-size: 11px; margin-top: 2px; color: #ffd700; font-weight: bold; }
+.tower-btn.disabled { opacity: 0.3; cursor: not-allowed; transform: none; filter: grayscale(1); }
+.tower-btn.hidden { display: none; }
+
+/* --- 快速列 --- */
+#quick-bar {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #1a222c;
+    border-top: 2px solid #45a29e;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+body.map-2 #quick-bar { background: #2e0f1a; border-top-color: #4a1525; }
+#quick-towers {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+.quick-btn {
+    background: #1f2833; color: #66fcf1; border: 1px solid #45a29e;
+    padding: 6px 12px; border-radius: 5px; cursor: pointer; pointer-events: auto;
+    font-size: 13px; font-weight: bold; transition: background 0.2s; white-space: nowrap;
+}
+.quick-btn:hover { background: rgba(69, 162, 158, 0.4); }
+
+/* --- 販賣按鈕 --- */
+.sell-btn {
+    background: #ff3333 !important; border-color: #ffaaaa !important; color: white !important;
+    display: none; box-shadow: 0 4px 15px rgba(255,0,0,0.5);
+}
+.sell-btn:hover { background: #cc0000 !important; }
+
+/* --- 通用按鈕 --- */
+.btn-style {
+    background: #66fcf1; border: none; color: #0b0c10; border-radius: 8px;
+    cursor: pointer; font-weight: bold; transition: transform 0.2s;
+    box-shadow: 0 4px 10px rgba(102,252,241,0.3); pointer-events: auto;
+}
+.btn-style:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+/* --- 下一波按鈕 --- */
+#next-wave-btn {
+    position: absolute; top: 30px; right: 30px; padding: 12px 24px; font-size: 16px; display: none; animation: pulse 2s infinite; z-index: 50;
+}
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+/* --- Toast 通知 --- */
+.toast {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(11, 12, 16, 0.95); color: #66fcf1; padding: 20px 40px;
+    border-radius: 12px; border: 2px solid #45a29e; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; font-weight: bold; font-size: 28px; z-index: 1000;
+    text-align: center; white-space: pre-line; box-shadow: 0 0 20px rgba(102,252,241,0.5);
+}
+
+/* --- 全屏覆蓋層 --- */
+.screen-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(11, 12, 16, 0.95); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 100; pointer-events: auto;
+}
+.screen-overlay h1 { font-size: 72px; color: #66fcf1; margin-bottom: 20px; text-shadow: 0 0 30px #45a29e; }
+
+/* --- 首頁畫面 --- */
+#home-screen { z-index: 150; }
+.mode-container { display: flex; gap: 30px; margin-top: 30px; }
+.mode-card {
+    background: #1f2833; border: 2px solid #45a29e; border-radius: 15px; padding: 30px;
+    width: 300px; text-align: center; transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;
+    display: flex; flex-direction: column; justify-content: space-between;
+}
+.mode-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(102,252,241,0.4); }
+.mode-card h2 { color: white; font-size: 32px; margin-top: 0; }
+.mode-card p { color: #c5c6c7; font-size: 16px; line-height: 1.5; min-height: 80px; }
+.start-btn { padding: 15px 40px; font-size: 24px; width: 100%; border-radius: 30px; margin-top: 20px; }
+
+.global-bank {
+    background: rgba(255, 215, 0, 0.1); border: 2px solid #ffd700; color: #ffd700;
+    padding: 15px 30px; border-radius: 50px; font-size: 24px; font-weight: bold;
+    margin-bottom: 10px; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* --- 遊戲內 HUD --- */
+#merge-hint {
+    position: absolute; top: 30%; width: 100%; text-align: center;
+    color: #ffd700; font-weight: bold; text-shadow: 0 2px 4px black;
+    display: none; pointer-events: none; font-size: 24px;
+}
+#scaling-info {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; color: #ffd700;
+    background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 8px; pointer-events: none;
+    border: 1px solid #ffd700; z-index: 50;
+}
+#warp-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: white; opacity: 0; pointer-events: none; z-index: 200; transition: opacity 1s;
+}
+.tutorial-text { color: #c5c6c7; font-size: 18px; max-width: 600px; text-align: center; margin-top: 20px; }
+
+/* --- 商店畫面 --- */
+#shop-screen { display: none; z-index: 160; background: rgba(11, 12, 16, 0.98); }
+.shop-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 1000px; margin-top: 20px; }
+.shop-item {
+    background: #1f2833; border: 2px solid #ffd700; border-radius: 10px; padding: 20px;
+    width: 200px; text-align: center; position: relative;
+}
+.shop-item.bought { border-color: #45a29e; opacity: 0.8; }
+.shop-item h3 { color: white; margin-top: 0; }
+.shop-item p { color: #c5c6c7; font-size: 14px; height: 40px; }
+.shop-btn {
+    background: #ffd700; color: black; border: none; padding: 10px; border-radius: 5px;
+    font-weight: bold; cursor: pointer; width: 100%; font-size: 16px;
+}
+.shop-btn:hover { background: #ffea00; }
+.shop-btn.bought { background: #45a29e; color: white; cursor: default; }
+#shop-error { color: #ff3333; font-weight: bold; margin-top: 20px; height: 24px; }
+.close-shop-btn {
+    position: absolute; top: 30px; right: 30px; background: none; border: 2px solid white;
+    color: white; padding: 10px 20px; font-size: 20px; cursor: pointer; border-radius: 10px;
+}
+.close-shop-btn:hover { background: white; color: black; }

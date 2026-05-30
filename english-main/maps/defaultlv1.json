@@ -1,0 +1,16 @@
+{
+  "name": "第一星區",
+  "tileWidth": 32,
+  "tileHeight": 18,
+  "tileSize": 32,
+  "tileSet": "default",
+  "tileData": [],
+  "path": [
+    { "x": 0, "y": 3 },
+    { "x": 10, "y": 3 },
+    { "x": 10, "y": 14 },
+    { "x": 22, "y": 14 },
+    { "x": 22, "y": 3 },
+    { "x": 30, "y": 3 }
+  ]
+}

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地圖編輯器 - 星際合成塔防</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0c10; color: #c5c6c7;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; user-select: none;
+        }
+        #toolbar {
+            width: 100%; background: #1f2833; border-bottom: 2px solid #45a29e;
+            display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+            flex-wrap: wrap;
+        }
+        #toolbar label { color: #66fcf1; font-weight: bold; font-size: 14px; }
+        #toolbar input[type="text"] {
+            background: #0b0c10; border: 1px solid #45a29e; color: #fff;
+            padding: 4px 8px; border-radius: 4px; width: 160px; font-size: 14px;
+        }
+        #toolbar button {
+            background: #45a29e; color: #fff; border: none; padding: 6px 14px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;
+            transition: background 0.2s;
+        }
+        #toolbar button:hover { background: #66fcf1; color: #0b0c10; }
+        #toolbar button.active { background: #ffd700; color: #000; }
+        #toolbar button.danger { background: #e94560; }
+        #toolbar button.danger:hover { background: #ff6b6b; }
+        #toolbar .sep { width: 1px; height: 28px; background: #45a29e; }
+        #status { color: #ffd700; font-size: 13px; margin-left: auto; white-space: nowrap; }
+        #canvas-wrap {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            width: 100%; padding: 8px;
+        }
+        canvas { border: 1px solid #1f2833; cursor: crosshair; background: #111e25; }
+        #info-bar {
+            width: 100%; background: #1f2833; border-top: 2px solid #45a29e;
+            display: flex; align-items: center; gap: 20px; padding: 6px 16px;
+            font-size: 13px; color: #c5c6c7;
+        }
+        #info-bar span { color: #66fcf1; }
+        .key-hint { color: #666; font-size: 12px; margin-left: 4px; }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <label>地圖名稱</label>
+        <input type="text" id="mapName" value="新地圖" placeholder="輸入地圖名稱">
+        <div class="sep"></div>
+        <button id="tool-add" class="active" onclick="setTool('add')">➕ 新增點</button>
+        <button id="tool-move" onclick="setTool('move')">✋ 移動點</button>
+        <button id="tool-del" onclick="setTool('del')">🗑️ 刪除點</button>
+        <div class="sep"></div>
+        <button id="btn-preview" onclick="togglePreview()">▶️ 預覽</button>
+        <button id="btn-clear" class="danger" onclick="clearPath()">🗑️ 清除全部</button>
+        <div class="sep"></div>
+        <button onclick="exportMap()">📥 匯出 JSON</button>
+        <button onclick="document.getElementById('importFile').click()">📤 匯入 JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importMap(event)">
+        <div id="status">路徑點: <span id="pointCount">0</span></div>
+    </div>
+    <div id="canvas-wrap">
+        <canvas id="editorCanvas"></canvas>
+    </div>
+    <div id="info-bar">
+        <div>格線: <span>32</span> x <span>18</span></div>
+        <div>TILE_SIZE: <span>32px</span></div>
+        <div>滑鼠位置: <span id="mousePos">(0, 0)</span></div>
+        <div>起點: <span id="startPos">-</span></div>
+        <div>終點: <span id="endPos">-</span></div>
+        <div style="margin-left:auto;">
+            <span class="key-hint">【Enter】新增點(同滑鼠左鍵)</span>
+            <span class="key-hint">【Del】刪除選中點</span>
+            <span class="key-hint">【Esc】取消選中</span>
+        </div>
+    </div>
+    <script>
+        const COLS = 32, ROWS = 18, TILE = 32;
+        const CANVAS_W = COLS * TILE, CANVAS_H = ROWS * TILE;
+
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = CANVAS_W;
+        canvas.height = CANVAS_H;
+
+        const mapNameInput = document.getElementById('mapName');
+
+        let path = [];
+        let currentTool = 'add';
+        let isPreviewing = false;
+        let previewProgress = 0;
+        let dragIndex = -1;
+        let selectedIndex = -1;
+        let animFrame = null;
+
+        function getGridPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const px = (e.clientX - rect.left) * scaleX;
+            const py = (e.clientY - rect.top) * scaleY;
+            return {
+                col: Math.round(Math.max(0, Math.min(COLS - 1, Math.floor(px / TILE)))),
+                row: Math.round(Math.max(0, Math.min(ROWS - 1, Math.floor(py / TILE))))
+            };
+        }
+
+        function getPixel(col, row) {
+            return { x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 };
+        }
+
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const dx = x2 - x1, dy = y2 - y1;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+            let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+            t = Math.max(0, Math.min(1, t));
+            const cx = x1 + t * dx, cy = y1 + t * dy;
+            return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+        }
+
+        function findNearestPoint(col, row, threshold) {
+            for (let i = 0; i < path.length; i++) {
+                if (path[i].x === col && path[i].y === row) return i;
+            }
+            const px = col * TILE + TILE / 2, py = row * TILE + TILE / 2;
+            for (let i = 0; i < path.length; i++) {
+                const p = getPixel(path[i].x, path[i].y);
+                if (Math.abs(p.x - px) < TILE / 2 && Math.abs(p.y - py) < TILE / 2) return i;
+            }
+            return -1;
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
+            document.getElementById('tool-' + tool).classList.add('active');
+            if (isPreviewing) togglePreview();
+            selectedIndex = -1;
+            render();
+        }
+
+        function togglePreview() {
+            isPreviewing = !isPreviewing;
+            document.getElementById('btn-preview').textContent = isPreviewing ? '⏹️ 停止' : '▶️ 預覽';
+            if (isPreviewing) {
+                previewProgress = 0;
+                if (path.length < 2) {
+                    isPreviewing = false;
+                    document.getElementById('btn-preview').textContent = '▶️ 預覽';
+                    return;
+                }
+                runPreview();
+            } else {
+                if (animFrame) cancelAnimationFrame(animFrame);
+                render();
+            }
+        }
+
+        function runPreview() {
+            if (!isPreviewing || path.length < 2) { isPreviewing = false; document.getElementById('btn-preview').textContent = '▶️ 預覽'; render(); return; }
+            renderPreview(previewProgress);
+            const segs = path.length - 1;
+            const totalDist = segs * TILE;
+            previewProgress += 2;
+            if (previewProgress > totalDist) previewProgress = 0;
+            animFrame = requestAnimationFrame(runPreview);
+        }
+
+        function getPreviewPos(progress) {
+            if (path.length < 2) return null;
+            let remaining = progress;
+            for (let i = 0; i < path.length - 1; i++) {
+                const dx = (path[i + 1].x - path[i].x) * TILE;
+                const dy = (path[i + 1].y - path[i].y) * TILE;
+                const segLen = Math.abs(dx) + Math.abs(dy);
+                if (remaining <= segLen) {
+                    const t = segLen > 0 ? remaining / segLen : 0;
+                    return {
+                        x: path[i].x * TILE + TILE / 2 + dx * t,
+                        y: path[i].y * TILE + TILE / 2 + dy * t
+                    };
+                }
+                remaining -= segLen;
+            }
+            const last = path[path.length - 1];
+            return { x: last.x * TILE + TILE / 2, y: last.y * TILE + TILE / 2 };
+        }
+
+        function renderPreview(progress) {
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+            drawGrid();
+            drawPathLines();
+            drawPoints();
+            const pos = getPreviewPos(progress);
+            if (pos) {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#66fcf1';
+                ctx.fill();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#66fcf1';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(31, 40, 51, 0.5)';
+            ctx.lineWidth = 1;
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * TILE, 0);
+                ctx.lineTo(c * TILE, CANVAS_H);
+                ctx.stroke();
+            }
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * TILE);
+                ctx.lineTo(CANVAS_W, r * TILE);
+                ctx.stroke();
+            }
+        }
+
+        function drawPathLines() {
+            if (path.length < 2) return;
+            ctx.strokeStyle = '#45a29e';
+            ctx.lineWidth = TILE * 0.7;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            path.forEach((p, i) => {
+                const px = p.x * TILE + TILE / 2;
+                const py = p.y * TILE + TILE / 2;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
+
+            // 方向箭頭
+            ctx.fillStyle = 'rgba(102, 252, 241, 0.4)';
+            for (let i = 0; i < path.length - 1; i++) {
+                const mid = {
+                    x: (path[i].x + path[i + 1].x) / 2,
+                    y: (path[i].y + path[i + 1].y) / 2
+                };
+                const dx = path[i + 1].x - path[i].x;
+                const dy = path[i + 1].y - path[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len === 0) continue;
+                const ux = dx / len, uy = dy / len;
+                const mx = mid.x * TILE + TILE / 2, my = mid.y * TILE + TILE / 2;
+                const arrowSize = 8;
+                ctx.beginPath();
+                ctx.moveTo(mx + ux * arrowSize, my + uy * arrowSize);
+                ctx.lineTo(mx - ux * arrowSize + uy * arrowSize * 0.5, my - uy * arrowSize - ux * arrowSize * 0.5);
+                ctx.lineTo(mx - ux * arrowSize - uy * arrowSize * 0.5, my - uy * arrowSize + ux * arrowSize * 0.5);
+                ctx.fill();
+            }
+        }
+
+        function drawPoints() {
+            path.forEach((p, i) => {
+                const px = p.x * TILE + TILE / 2;
+                const py = p.y * TILE + TILE / 2;
+                const isStart = i === 0;
+                const isEnd = i === path.length - 1;
+
+                let color, radius, label;
+                if (isStart) {
+                    color = '#66fcf1'; radius = 8; label = '起';
+                } else if (isEnd) {
+                    color = '#e94560'; radius = 8; label = '終';
+                } else {
+                    color = selectedIndex === i ? '#ffd700' : '#fff'; radius = 5;
+                }
+
+                ctx.beginPath();
+                ctx.arc(px, py, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                if (isStart || isEnd) {
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(label, px, py);
+                }
+
+                // 座標標籤
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = '9px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`(${p.x},${p.y})`, px, py + radius + 2);
+            });
+        }
+
+        function render() {
+            if (isPreviewing) return;
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+            drawGrid();
+            drawPathLines();
+            drawPoints();
+        }
+
+        function updateStatus() {
+            document.getElementById('pointCount').textContent = path.length;
+            document.getElementById('startPos').textContent = path.length > 0 ? `(${path[0].x}, ${path[0].y})` : '-';
+            document.getElementById('endPos').textContent = path.length > 1 ? `(${path[path.length - 1].x}, ${path[path.length - 1].y})` : '-';
+            render();
+        }
+
+        function isValidPathSegment(x1, y1, x2, y2) {
+            if (x1 < 0 || x1 >= COLS || y1 < 0 || y1 >= ROWS ||
+                x2 < 0 || x2 >= COLS || y2 < 0 || y2 >= ROWS) return false;
+            if (x1 !== x2 && y1 !== y2) return false;
+            return true;
+        }
+
+        function addPoint(col, row) {
+            if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+            if (findNearestPoint(col, row, 1) !== -1) return;
+
+            if (path.length > 0) {
+                const last = path[path.length - 1];
+                if (!isValidPathSegment(last.x, last.y, col, row)) return;
+            }
+
+            path.push({ x: col, y: row });
+            updateStatus();
+        }
+
+        function removePoint(index) {
+            if (index < 0 || index >= path.length) return;
+            if (path.length <= 2) return;
+            path.splice(index, 1);
+            if (selectedIndex === index) selectedIndex = -1;
+            else if (selectedIndex > index) selectedIndex--;
+            updateStatus();
+        }
+
+        function movePoint(index, col, row) {
+            if (index < 0 || index >= path.length) return;
+            if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+
+            if (index > 0) {
+                const prev = path[index - 1];
+                if (!isValidPathSegment(prev.x, prev.y, col, row)) return;
+            }
+            if (index < path.length - 1) {
+                const next = path[index + 1];
+                if (!isValidPathSegment(col, row, next.x, next.y)) return;
+            }
+
+            path[index] = { x: col, y: row };
+            updateStatus();
+        }
+
+        function clearPath() {
+            path = [];
+            selectedIndex = -1;
+            if (isPreviewing) togglePreview();
+            updateStatus();
+        }
+
+        // === 滑鼠事件 ===
+        canvas.addEventListener('mousedown', (e) => {
+            if (isPreviewing) return;
+            const g = getGridPos(e);
+
+            if (currentTool === 'add') {
+                if (e.button === 2) {
+                    const idx = findNearestPoint(g.col, g.row, 0);
+                    if (idx !== -1) removePoint(idx);
+                } else {
+                    const idx = findNearestPoint(g.col, g.row, 0);
+                    if (idx !== -1) {
+                        if (path.length > 2) {
+                            selectedIndex = idx;
+                            render();
+                        }
+                    } else {
+                        addPoint(g.col, g.row);
+                    }
+                }
+            } else if (currentTool === 'move') {
+                const idx = findNearestPoint(g.col, g.row, 2);
+                if (idx !== -1) {
+                    dragIndex = idx;
+                    selectedIndex = idx;
+                    render();
+                }
+            } else if (currentTool === 'del') {
+                const idx = findNearestPoint(g.col, g.row, 2);
+                if (idx !== -1) removePoint(idx);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const g = getGridPos(e);
+            document.getElementById('mousePos').textContent = `(${g.col}, ${g.row})`;
+
+            if (dragIndex !== -1 && currentTool === 'move') {
+                movePoint(dragIndex, g.col, g.row);
+            }
+
+            if (!isPreviewing) render();
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            dragIndex = -1;
+        });
+
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // === 鍵盤事件 ===
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedIndex !== -1) {
+                    removePoint(selectedIndex);
+                }
+            }
+            if (e.key === 'Escape') {
+                selectedIndex = -1;
+                render();
+            }
+            if (e.key === 'Enter') {
+                if (currentTool !== 'add') setTool('add');
+            }
+        });
+
+        // === 匯出 ===
+        function exportMap() {
+            if (path.length < 2) { alert('路徑至少需要 2 個點'); return; }
+            const mapData = {
+                name: mapNameInput.value || '未命名地圖',
+                tileWidth: COLS,
+                tileHeight: ROWS,
+                tileSize: TILE,
+                tileSet: 'default',
+                tileData: [],
+                path: path.map(p => ({ x: p.x, y: p.y }))
+            };
+            for (let r = 0; r < ROWS; r++) {
+                mapData.tileData.push(new Array(COLS).fill(0));
+            }
+            const json = JSON.stringify(mapData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = mapNameInput.value.replace(/[/\\?%*:|"<>]/g, '_') + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // === 匯入 ===
+        function importMap(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.path || !Array.isArray(data.path) || data.path.length < 2) {
+                        alert('地圖格式錯誤：path 至少需要 2 個點');
+                        return;
+                    }
+                    for (let p of data.path) {
+                        if (typeof p.x !== 'number' || typeof p.y !== 'number' ||
+                            p.x < 0 || p.x >= COLS || p.y < 0 || p.y >= ROWS) {
+                            alert('路徑點超出地圖範圍');
+                            return;
+                        }
+                    }
+                    for (let i = 0; i < data.path.length - 1; i++) {
+                        const p1 = data.path[i], p2 = data.path[i + 1];
+                        if (p1.x !== p2.x && p1.y !== p2.y) {
+                            alert('路徑必須是水平或垂直線段');
+                            return;
+                        }
+                    }
+                    path = data.path.map(p => ({ x: p.x, y: p.y }));
+                    if (data.name) mapNameInput.value = data.name;
+                    selectedIndex = -1;
+                    if (isPreviewing) togglePreview();
+                    updateStatus();
+                } catch (err) {
+                    alert('JSON 解析失敗：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // 初始化
+        // 加入預設示例路徑
+        path = [
+            { x: 0, y: 5 }, { x: 8, y: 5 }, { x: 8, y: 14 }, { x: 16, y: 14 },
+            { x: 16, y: 5 }, { x: 24, y: 5 }, { x: 24, y: 14 }, { x: 31, y: 14 }
+        ];
+        updateStatus();
+    </script>
+</body>
+</html>
