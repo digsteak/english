@@ -18,7 +18,8 @@ const TowerGraphics = {
             if (this.spriteRows[key] !== undefined) continue;
             const img = new Image();
             if (key === 'vampire') {
-                img.src = 'PIC/vampire.png';
+                img.src = 'PIC/Copilot_20260531_085448.png';
+                img.onload = () => {};
             } else {
                 img.src = this.generateSVG(key, TOWER_TYPES[key]);
             }
