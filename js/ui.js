@@ -156,7 +156,12 @@ function openShop(fromGame = false) {
     document.getElementById('shop-error').innerText = '';
 
     if (fromGame) {
-        if (!G.gameState.isPaused && G.gameState.isPlaying) togglePause();
+        if (!G.gameState.isPaused && G.gameState.isPlaying) {
+            togglePause();
+            G.shopAutoPaused = true;
+        } else {
+            G.shopAutoPaused = false;
+        }
         document.getElementById('shop-screen').style.zIndex = '200';
     } else {
         document.getElementById('home-screen').style.display = 'none';
@@ -170,6 +175,9 @@ function openShop(fromGame = false) {
 function closeShop() {
     document.getElementById('shop-screen').style.display = 'none';
     if (G.shopOpenFromGame) {
+        if (G.shopAutoPaused && G.gameState.isPaused && G.gameState.isPlaying) {
+            togglePause();
+        }
         updateUI();
     } else {
         document.getElementById('home-screen').style.display = 'flex';
